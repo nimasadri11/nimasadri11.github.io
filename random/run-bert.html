@@ -654,7 +654,8 @@
         background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Crect%20x%3D%220.75%22%20y%3D%220.75%22%20width%3D%2214.5%22%20height%3D%2214.5%22%20fill%3D%22white%22%20stroke%3D%22%2336352F%22%20stroke-width%3D%221.5%22%2F%3E%0A%3C%2Fsvg%3E");
     }
         
-    </style></head><body><article id="67ac4b6d-a107-48d7-8122-a10d17173de3" class="page sans"><header><img class="page-cover-image" src="https://images.unsplash.com/photo-1614796918928-c92c79693e94?ixlib=rb-1.2.1&amp;q=85&amp;fm=jpg&amp;crop=entropy&amp;cs=srgb" style="object-position:center 40.169999999999995%"/><div class="page-header-icon page-header-icon-with-cover"><img class="icon" src="https://d827xgdhgqbnd.cloudfront.net/wp-content/uploads/2019/04/09110726/Bert-Head.png"/></div><h1 class="page-title">Running BERT</h1></header><div class="page-body"><h1 id="7f0433cd-a650-481c-847e-a186bed0b305" class="">Preliminaries</h1><ol type="1" id="6ebf6b7d-c7bd-4308-81d4-189f9726b23e" class="numbered-list" start="1"><li>Install miniconda: <a href="https://docs.conda.io/en/latest/miniconda.html">https://docs.conda.io/en/latest/miniconda.html</a></li></ol><ol type="1" id="9607b605-e49a-4c7d-8edd-b4804bf0afe3" class="numbered-list" start="2"><li>create a virtual environment with conda (replace <code>my-env-name</code> with your favorite name!)</li></ol><pre id="21ff406d-6079-4b4e-aab2-4f8510561e03" class="code"><code>conda create -n my-env-name python=3.8</code></pre><ol type="1" id="34494686-ad1e-49fa-94ec-edb9446b7de5" class="numbered-list" start="3"><li>Start the environment</li></ol><pre id="8818008b-24df-406f-bf49-5f7eca2277d1" class="code"><code>conda activate my-env-name</code></pre><ol type="1" id="2e25afa8-f4e5-4d37-9821-d5466a478b7f" class="numbered-list" start="3"><li>Install the huggingface library</li></ol><pre id="fd44613f-51ba-4356-bd61-734fd417cc69" class="code"><code>pip install transformers</code></pre><ol type="1" id="dc6fcf11-4cf4-4877-a8ed-6e407dfde3ad" class="numbered-list" start="4"><li>Install pytorch</li></ol><pre id="3bf4f2a4-f047-45bf-878c-944060fd4387" class="code"><code>conda install -c pytorch pytorch</code></pre><h1 id="aeb9b22c-5fa9-4a35-a506-baec408c0346" class="">BERT</h1><ol type="1" id="1cecda6c-3b67-4c73-8224-423f244cea3b" class="numbered-list" start="5"><li>open a <code>.py</code> file</li></ol><pre id="5bb6b988-54d6-471b-997a-f25cd163d0a4" class="code"><code>from transformers import AutoTokenizer, AutoModelForSequenceClassification
+    </style></head><body><article id="67ac4b6d-a107-48d7-8122-a10d17173de3" class="page sans"><header><img class="page-cover-image" src="https://images.unsplash.com/photo-1614796918928-c92c79693e94?ixlib=rb-1.2.1&amp;q=85&amp;fm=jpg&amp;crop=entropy&amp;cs=srgb" style="object-position:center 40.169999999999995%"/><div class="page-header-icon page-header-icon-with-cover"><img class="icon" src="https://d827xgdhgqbnd.cloudfront.net/wp-content/uploads/2019/04/09110726/Bert-Head.png"/></div><h1 class="page-title">Running BERT</h1></header><div class="page-body"><h1 id="7f0433cd-a650-481c-847e-a186bed0b305" class="">Preliminaries</h1><ol type="1" id="6ebf6b7d-c7bd-4308-81d4-189f9726b23e" class="numbered-list" start="1"><li>Install miniconda: <a href="https://docs.conda.io/en/latest/miniconda.html">https://docs.conda.io/en/latest/miniconda.html</a></li></ol><ol type="1" id="9607b605-e49a-4c7d-8edd-b4804bf0afe3" class="numbered-list" start="2"><li>create a virtual environment with conda (replace <code>my-env-name</code> with your favorite name!)</li></ol><pre id="21ff406d-6079-4b4e-aab2-4f8510561e03" class="code"><code>conda create -n my-env-name python=3.8</code></pre><ol type="1" id="34494686-ad1e-49fa-94ec-edb9446b7de5" class="numbered-list" start="3"><li>Start the environment</li></ol><pre id="8818008b-24df-406f-bf49-5f7eca2277d1" class="code"><code>conda activate my-env-name</code></pre><ol type="1" id="2e25afa8-f4e5-4d37-9821-d5466a478b7f" class="numbered-list" start="3"><li>Install the huggingface library</li></ol><pre id="fd44613f-51ba-4356-bd61-734fd417cc69" class="code"><code>pip install transformers</code></pre><ol type="1" id="dc6fcf11-4cf4-4877-a8ed-6e407dfde3ad" class="numbered-list" start="4"><li>Install pytorch</li></ol><pre id="3bf4f2a4-f047-45bf-878c-944060fd4387" class="code"><code>conda install -c pytorch pytorch</code></pre><h1 id="aeb9b22c-5fa9-4a35-a506-baec408c0346" class="">BERT</h1><ol type="1" id="1cecda6c-3b67-4c73-8224-423f244cea3b" class="numbered-list" start="5"><li>open a <code>.py</code> file</li></ol><pre id="5bb6b988-54d6-471b-997a-f25cd163d0a4" class="code"><code>
+    from transformers import AutoTokenizer, AutoModelForSequenceClassification
     use_gpu = True
     if use_gpu:
         device = &#x27;cuda&#x27;
@@ -683,7 +684,8 @@
     logits = output.logits
     print(f&quot;logits: {logits}&quot;)
     predictions = logits.argmax(axis=1)
-    print(f&quot;prediction: {predictions}&quot;)</code></pre><ol type="1" id="fa391189-8c48-4568-a945-19c4f33d9e15" class="numbered-list" start="6"><li>Train your model</li></ol><pre id="b0e0e965-ada8-40a7-ad73-b36745865640" class="code"><code>from transformers import Trainer, TrainingArguments
+    print(f&quot;prediction: {predictions}&quot;)</code></pre><ol type="1" id="fa391189-8c48-4568-a945-19c4f33d9e15" class="numbered-list" start="6"><li>Train your model</li></ol><pre id="b0e0e965-ada8-40a7-ad73-b36745865640" class="code"><code>
+    from transformers import Trainer, TrainingArguments
     
     labels = [1,0,0]
     
@@ -702,20 +704,22 @@
     
     training_dataset = tokenized_datasets
     trainer = Trainer(model=model, args=training_args, train_dataset=training_dataset)
-    trainer.train()</code></pre><ol type="1" id="064d7839-5c05-4fef-bb29-34a894705e14" class="numbered-list" start="7"><li>Test again: </li></ol><pre id="0a1b5349-e3b6-470a-b720-960d98f447eb" class="code"><code>model.to(device)
+    trainer.train()</code></pre><ol type="1" id="064d7839-5c05-4fef-bb29-34a894705e14" class="numbered-list" start="7"><li>Test again: </li></ol><pre id="0a1b5349-e3b6-470a-b720-960d98f447eb" class="code"><code>
+    model.to(device)
     tokens.to(device)
     output = model(**tokens)
     logits = output.logits
     print(f&quot;logits: {logits}&quot;)
     predictions = logits.argmax(axis=1)
     print(f&quot;prediction: {predictions}&quot;)</code></pre><p id="63b22653-13f6-4dbe-99fa-6046f6006d23" class="">
-    </p><h1 id="9c90a0e6-626f-4511-89c4-39ddd524d832" class="">T5</h1><p id="eb227404-758b-48dc-ad60-8abde083441e" class="">Here’s a script you can use to play around with T5</p><pre id="206cc697-47c5-452e-849d-6143ba2d6d42" class="code"><code>from transformers import T5Tokenizer, T5ForConditionalGeneration
+    </p><h1 id="9c90a0e6-626f-4511-89c4-39ddd524d832" class="">T5</h1><p id="eb227404-758b-48dc-ad60-8abde083441e" class="">Here’s a script you can use to play around with T5</p><pre id="206cc697-47c5-452e-849d-6143ba2d6d42" class="code"><code>
+    from transformers import T5Tokenizer, T5ForConditionalGeneration
     
     tokenizer = T5Tokenizer.from_pretrained(&quot;t5-small&quot;)
     model = T5ForConditionalGeneration.from_pretrained(&quot;t5-small&quot;)
     while True:
-        inp = input(&quot;enter sentence: &quot;)
-        tokens = tokenizer(inp, return_tensors=&#x27;pt&#x27;).input_ids
-        output = model.generate(tokens)
-        print(tokenizer.decode(output[0]))</code></pre><p id="a522c84b-0b0b-456a-8d19-6cbafa8bfe2c" class="">
+    inp = input(&quot;enter sentence: &quot;)
+    tokens = tokenizer(inp, return_tensors=&#x27;pt&#x27;).input_ids
+    output = model.generate(tokens)
+    print(tokenizer.decode(output[0]))</code></pre><p id="a522c84b-0b0b-456a-8d19-6cbafa8bfe2c" class="">
     </p></div></article></body></html>
