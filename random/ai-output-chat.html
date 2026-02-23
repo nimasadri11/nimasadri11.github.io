@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Why We Stopped Putting Long AI Output in Chat — Nima Sadri</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #F6F1EB;
+            --text: #1C1917;
+            --text-muted: #78716C;
+            --text-light: #A8A29E;
+            --divider: #DDD5CA;
+            --accent: #B05030;
+        }
+
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Crimson Text', Georgia, 'Times New Roman', serif;
+            font-size: 18px;
+            line-height: 1.75;
+            min-height: 100vh;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            opacity: 0.35;
+            pointer-events: none;
+            z-index: 999;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+            background-size: 256px 256px;
+        }
+
+        .container { max-width: 700px; margin: 0 auto; padding: 7vh 28px 14vh; }
+
+        .back-link {
+            display: inline-flex; align-items: center; gap: 8px;
+            font-family: 'Crimson Text', serif; font-size: 0.9rem;
+            color: var(--text-muted); text-decoration: none; margin-bottom: 6vh;
+            transition: color 0.3s ease;
+        }
+        .back-link:hover { color: var(--text); }
+        .back-link svg { width: 15px; height: 15px; transition: transform 0.3s ease; }
+        .back-link:hover svg { transform: translateX(-3px); }
+
+        .article-header { margin-bottom: 4rem; animation: fadeUp 0.7s ease-out both; }
+
+        .title {
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-weight: 600; font-size: clamp(2.2rem, 5vw, 3rem);
+            line-height: 1.15; letter-spacing: -0.02em; margin-bottom: 1.5rem;
+        }
+
+        .subtitle { font-size: 1rem; color: var(--text-muted); font-style: italic; }
+        .subtitle a { color: var(--accent); text-decoration-color: rgba(176, 80, 48, 0.3); transition: text-decoration-color 0.3s; }
+        .subtitle a:hover { text-decoration-color: var(--accent); }
+
+        .divider { width: 60px; height: 1px; background: var(--divider); margin: 2rem 0; }
+
+        .content { animation: fadeUp 0.6s ease-out 0.15s both; }
+        .content p { margin-bottom: 1.4rem; }
+
+        .content h2 {
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-weight: 600;
+            font-size: 1.8rem;
+            margin-top: 3.5rem;
+            margin-bottom: 1.5rem;
+            color: var(--text);
+            letter-spacing: -0.01em;
+        }
+
+        .content h2:first-child {
+            margin-top: 0;
+        }
+
+        .content strong {
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .content a {
+            color: var(--accent);
+            text-decoration-color: rgba(176, 80, 48, 0.3);
+            transition: text-decoration-color 0.3s;
+        }
+        .content a:hover { text-decoration-color: var(--accent); }
+
+        .content code {
+            font-family: 'SFMono-Regular', Menlo, Consolas, monospace;
+            font-size: 0.85em;
+            background: rgba(176, 80, 48, 0.1);
+            color: var(--accent);
+            padding: 0.15em 0.4em;
+            border-radius: 3px;
+        }
+
+        .content figure {
+            margin: 2.5rem 0 3rem;
+            width: 95vw;
+            max-width: 1200px;
+            position: relative;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .content figure img {
+            width: 100%;
+            border-radius: 6px;
+            border: 1px solid rgba(28, 25, 23, 0.15);
+            box-shadow: 0 4px 24px rgba(28, 25, 23, 0.12);
+        }
+
+        .content figure figcaption {
+            font-size: 0.82rem;
+            color: var(--text-light);
+            font-style: italic;
+            margin-top: 0.6rem;
+            text-align: center;
+        }
+
+        .page-footer {
+            margin-top: 8vh; padding-top: 2rem; border-top: 1px solid var(--divider);
+            font-family: 'Cormorant Garamond', serif; font-size: 0.85rem;
+            color: var(--text-light); display: flex; justify-content: space-between;
+        }
+        .page-footer a { color: var(--text-muted); text-decoration: none; transition: color 0.3s; }
+        .page-footer a:hover { color: var(--text); }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 600px) {
+            .container { padding: 5vh 20px 10vh; }
+            .content figure { width: 100vw; }
+            .content figure img { border-radius: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="./" class="back-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            All Writings
+        </a>
+
+        <header class="article-header">
+            <h1 class="title">Why We Stopped Putting Long AI Output in Chat</h1>
+            <p class="subtitle">Building <a href="https://agents2agents.ai/ata">ata</a>, an open-source AI research agent</p>
+            <div class="divider"></div>
+        </header>
+
+        <div class="content">
+            <p>Ask any AI to explain a research paper. The explanation is usually good. The problem is the interface it's sitting in.</p>
+
+            <p>You read through it in the chat window. You have a question about the attention mechanism. You ask. The answer shows up at the bottom of the conversation, completely disconnected from the section it's about. You ask two more questions. Now the useful content is in four different places in a chat log and you're scrolling up and down trying to piece together a coherent understanding.</p>
+
+            <p>The more questions you ask, the more scattered things get. That's exactly backwards &mdash; follow-ups should make things clearer, not harder to find.</p>
+
+            <p>We ran into this building an AI research agent. The agent reads papers, does synthesis, comparative analysis &mdash; stuff that produces long, structured output. We tried chat first because that's what everyone does. It didn't work. Not because the content was bad, but because chat is a conversation interface and the output was a document.</p>
+
+            <figure>
+                <img src="ai-output-chat/reading-view-expanded-detail.png" alt="Reading view showing a paper synthesis with navigable sections">
+                <figcaption>Reading view with navigable sections and foldable detail blocks</figcaption>
+            </figure>
+
+            <h2>The thing that actually mattered</h2>
+
+            <p>We built a reading view &mdash; navigable sections, foldable detail blocks. That part was obvious. The design decision that actually changed things: follow-up questions modify the document in place instead of creating new messages.</p>
+
+            <p>You're reading section 3, something's confusing, you ask a question. The agent doesn't append a new message. It updates section 3 with the answer woven in. The section heading highlights so you see what changed.</p>
+
+            <p>This means every question makes the document better instead of making the chat log longer. Your understanding accumulates in one place.</p>
+
+            <figure>
+                <img src="ai-output-chat/reading-view-followup-question.png" alt="Asking a follow-up question inside the document">
+                <figcaption>Asking a follow-up question inside the document</figcaption>
+            </figure>
+
+            <figure>
+                <img src="ai-output-chat/reading-view-updated-section.png" alt="The section updates in place with the answer woven in">
+                <figcaption>The section updates in place with the answer woven in</figcaption>
+            </figure>
+
+            <p>A few other things we figured out along the way:</p>
+
+            <p><strong>Outline-first streaming.</strong> Send all the section headings first, then fill them in one by one. You start reading immediately and you know what's coming. Sounds small but it changes how it feels to wait for generation.</p>
+
+            <p><strong>Foldable detail.</strong> Hyperparameters, training schedules, exact dimensions &mdash; stuff you want available but not always visible. The agent marks it foldable with a short summary line. Expand when you need it.</p>
+
+            <p><strong>Visual selection for questions.</strong> Instead of typing "the part about the encoder in the third paragraph," you highlight the text and ask about it. The agent gets the exact passage. Turns vague follow-ups into precise ones.</p>
+
+            <h2>What's still hard</h2>
+
+            <p>Deciding when to rewrite vs. append is tricky. Sometimes the right answer to a question is rewriting part of the explanation. Sometimes it's adding a paragraph. We have heuristics for this but they're not perfect &mdash; the agent sometimes appends when a rewrite would be better.</p>
+
+            <p>And there's a real tension between keeping sections stable (so you can find things) and letting them evolve (so they improve). We don't have this fully figured out yet.</p>
+
+            <h2>The broader point</h2>
+
+            <p>Chat was the first interface for LLMs because it was easy. But a lot of AI output &mdash; research synthesis, architecture walkthroughs, comparative analysis &mdash; isn't a conversation. It's a document. The interface should match.</p>
+
+            <p>We built this into <code>ata</code>, an open-source research agent: <a href="https://github.com/Agents2AgentsAI/ata">github.com/Agents2AgentsAI/ata</a></p>
+        </div>
+
+        <footer class="page-footer">
+            <span>Nima Sadri</span>
+            <a href="./">Back to writings</a>
+        </footer>
+    </div>
+</body>
+</html>
