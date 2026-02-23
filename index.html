@@ -1,750 +1,768 @@
-<!doctype html>
-<html>
-  <head>
-    <title>Nima Sadri</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
-  </head>
-  <body>
-    <div class="section">
-      <p class="header">Nima Sadri</p>
-      <!-- <div class="sectionbody" > -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nima Sadri — Co-Founder, Agents2Agents</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #F6F1EB;
+            --text: #1C1917;
+            --text-muted: #78716C;
+            --text-light: #A8A29E;
+            --divider: #DDD5CA;
+            --accent-warm: #B05030;
+            --accent-teal: #4A7C7E;
+            --accent-blue: #3D6B99;
+            --accent-green: #5A7F60;
+            --accent-purple: #7E5F8E;
+            --accent-gold: #B8860B;
+        }
 
-      
-        <div class="subsection" style="display: flex;">
-          <!-- <p class="header">Awards received from University of Waterloo’s Math and Computing faculty </p> -->
-          <p class="body">
-            I am a CS major graduating from University of Waterloo in Summer 2022. I have worked as a data infra engineer and software engineer in startups in US and Canada.
-            <br><br>
-            My research uses deep learning methods in areas of Natural Language Processing (NLP), particularly in text-summarization and text-ranking.
-            <br><br>
-            I am also a co-founder at <a href="https://avybe.com" target="_blank">Avybe</a>.
-            <br><br>
-            See <a href="random/" target="_blank">here</a> for a list of my random (and I believe usefull) writings.
-          </p>
-          <img src="nima.jpeg" class="headshot"/>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; scroll-behavior: smooth; }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Crimson Text', Georgia, 'Times New Roman', serif;
+            font-size: 18px;
+            line-height: 1.75;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            opacity: 0.35;
+            pointer-events: none;
+            z-index: 999;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+            background-size: 256px 256px;
+        }
+
+        .page {
+            max-width: 780px;
+            margin: 0 auto;
+            padding: 8vh 32px 14vh;
+        }
+
+        /* ══════════════════════════════════════
+           HERO — asymmetric, confident
+           ══════════════════════════════════════ */
+        .hero {
+            display: grid;
+            grid-template-columns: 1fr 150px;
+            gap: 2rem;
+            align-items: end;
+            margin-bottom: 3.5rem;
+            animation: fadeUp 0.7s ease-out both;
+        }
+
+        .hero-text { min-width: 0; }
+
+        .name {
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-weight: 300;
+            font-size: clamp(3.2rem, 8vw, 4.8rem);
+            line-height: 0.95;
+            letter-spacing: -0.035em;
+            color: var(--text);
+            margin-bottom: 1rem;
+        }
+
+        .name em {
+            font-style: italic;
+            font-weight: 600;
+        }
+
+        .role {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+            color: var(--accent-warm);
+        }
+
+        .headshot {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            object-fit: cover;
+            filter: grayscale(10%) contrast(1.03);
+            animation: fadeUp 0.7s ease-out 0.12s both;
+        }
+
+        /* ── Intro paragraph ── */
+        .intro {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            line-height: 1.85;
+            max-width: 600px;
+            margin-bottom: 2rem;
+            animation: fadeUp 0.6s ease-out 0.15s both;
+        }
+
+        .intro a {
+            color: var(--accent-warm);
+            text-decoration-color: rgba(176, 80, 48, 0.3);
+            transition: text-decoration-color 0.3s;
+        }
+        .intro a:hover { text-decoration-color: var(--accent-warm); }
+
+        /* ── Contact row ── */
+        .contact-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.8rem 2.2rem;
+            animation: fadeUp 0.6s ease-out 0.2s both;
+        }
+
+        .contact-item {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            font-size: 0.78rem;
+            letter-spacing: 0.02em;
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        a.contact-item:hover { color: var(--text); }
+
+        /* ══════════════════════════════════════
+           SECTIONS — colored left accent borders
+           ══════════════════════════════════════ */
+        .section {
+            margin-top: 5.5rem;
+        }
+
+        .section-head {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 1.8rem;
+        }
+
+        .section-accent {
+            width: 4px;
+            height: 28px;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+
+        .section-label {
+            font-family: 'Cormorant Garamond', serif;
+            font-weight: 700;
+            font-size: 1.6rem;
+            letter-spacing: -0.01em;
+            line-height: 1;
+        }
+
+        /* Color each section */
+        .section--experience .section-accent { background: var(--accent-warm); }
+        .section--publications .section-accent { background: var(--accent-blue); }
+        .section--education .section-accent { background: var(--accent-green); }
+        .section--stack .section-accent { background: var(--accent-purple); }
+        .section--writing .section-accent { background: var(--accent-gold); }
+        .section--references .section-accent { background: var(--accent-teal); }
+
+        /* ══════════════════════════════════════
+           EXPERIENCE
+           ══════════════════════════════════════ */
+        .exp-entry {
+            padding: 1.6rem 0 1.6rem 1.2rem;
+            border-left: 2px solid var(--divider);
+            margin-left: 1px;
+            position: relative;
+            transition: border-color 0.3s;
+        }
+
+        .exp-entry:hover {
+            border-left-color: var(--accent-warm);
+        }
+
+        .exp-entry + .exp-entry {
+            margin-top: 0;
+        }
+
+        .exp-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 1rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .exp-company {
+            font-family: 'Cormorant Garamond', serif;
+            font-weight: 700;
+            font-size: 1.4rem;
+            line-height: 1.25;
+            letter-spacing: -0.01em;
+        }
+
+        .exp-period {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            font-size: 0.68rem;
+            font-weight: 500;
+            letter-spacing: 0.04em;
+            color: var(--text-light);
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .exp-role {
+            font-size: 0.95rem;
+            color: var(--accent-warm);
+            font-style: italic;
+            margin-bottom: 0.7rem;
+            font-weight: 600;
+        }
+
+        .exp-bullets {
+            list-style: none;
+            padding: 0;
+        }
+
+        .exp-bullets li {
+            position: relative;
+            padding-left: 1.1rem;
+            margin-bottom: 0.3rem;
+            font-size: 0.92rem;
+            color: var(--text-muted);
+            line-height: 1.65;
+        }
+
+        .exp-bullets li::before {
+            content: '\2014';
+            position: absolute;
+            left: 0;
+            color: var(--divider);
+            font-weight: 600;
+        }
+
+        /* ══════════════════════════════════════
+           PUBLICATIONS
+           ══════════════════════════════════════ */
+        .pub-entry {
+            padding: 1.1rem 0;
+            border-bottom: 1px solid var(--divider);
+        }
+        .pub-entry:first-of-type { border-top: 1px solid var(--divider); }
+
+        .pub-number {
+            font-family: 'Cormorant Garamond', serif;
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: var(--accent-blue);
+            margin-right: 0.5rem;
+        }
+
+        .pub-title a {
+            font-family: 'Cormorant Garamond', serif;
+            font-weight: 600;
+            font-size: 1.12rem;
+            color: var(--text);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        .pub-title a:hover { color: var(--accent-blue); }
+
+        .pub-meta {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            margin-top: 0.15rem;
+        }
+
+        .pub-note {
+            font-size: 0.9rem;
+            color: var(--text-light);
+            font-style: italic;
+            margin-top: 1.2rem;
+        }
+
+        /* ══════════════════════════════════════
+           EDUCATION
+           ══════════════════════════════════════ */
+        .edu-degree {
+            font-family: 'Cormorant Garamond', serif;
+            font-weight: 600;
+            font-size: 1.3rem;
+            margin-bottom: 0.15rem;
+        }
+
+        .edu-details {
+            font-size: 0.92rem;
+            color: var(--text-muted);
+        }
+
+        /* ══════════════════════════════════════
+           TECH STACK
+           ══════════════════════════════════════ */
+        .stack-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem 0.65rem;
+        }
+
+        .stack-tag {
+            font-family: 'SFMono-Regular', Menlo, Consolas, monospace;
+            font-size: 0.73rem;
+            color: var(--text-muted);
+            background: rgba(126, 95, 142, 0.06);
+            padding: 0.3rem 0.7rem;
+            border-radius: 3px;
+            border: 1px solid rgba(126, 95, 142, 0.15);
+            transition: all 0.3s ease;
+            cursor: default;
+        }
+
+        .stack-tag:hover {
+            color: var(--accent-purple);
+            border-color: var(--accent-purple);
+            background: rgba(126, 95, 142, 0.08);
+        }
+
+        /* ══════════════════════════════════════
+           WRITINGS LINK
+           ══════════════════════════════════════ */
+        .writings-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--accent-gold);
+            text-decoration: none;
+            transition: gap 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        .writings-link:hover { gap: 16px; }
+        .writings-link svg {
+            width: 18px; height: 18px;
+            transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        .writings-link:hover svg { transform: translateX(4px); }
+
+        .aside {
+            font-size: 0.88rem;
+            color: var(--text-light);
+            font-style: italic;
+            margin-top: 1.5rem;
+        }
+
+        /* ══════════════════════════════════════
+           REFERENCES — pull-quote style
+           ══════════════════════════════════════ */
+        .ref-grid {
+            display: grid;
+            gap: 2rem;
+        }
+
+        .ref-card {
+            position: relative;
+            padding: 1.4rem 0 1.4rem 1.4rem;
+            border-left: 3px solid var(--accent-teal);
+        }
+
+        .ref-quote {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            line-height: 1.7;
+            font-style: italic;
+            margin-bottom: 0.7rem;
+        }
+
+        .ref-quote::before {
+            content: '\201C';
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--accent-teal);
+            opacity: 0.35;
+            position: absolute;
+            left: 1.2rem;
+            top: 0.4rem;
+            line-height: 1;
+        }
+
+        .ref-author {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            font-size: 0.72rem;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            color: var(--text);
+        }
+
+        .ref-author-title {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            font-size: 0.68rem;
+            color: var(--text-light);
+            letter-spacing: 0.01em;
+        }
+
+        .ref-disclosure {
+            font-size: 0.78rem;
+            color: var(--text-light);
+            font-style: italic;
+            margin-top: -0.3rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .ref-footer {
+            font-size: 0.85rem;
+            color: var(--text-light);
+            margin-top: 2rem;
+            font-style: italic;
+        }
+
+        .ref-footer a {
+            color: var(--accent-teal);
+            text-decoration-color: rgba(74, 124, 126, 0.3);
+            transition: text-decoration-color 0.3s;
+        }
+        .ref-footer a:hover { text-decoration-color: var(--accent-teal); }
+
+        /* ══════════════════════════════════════
+           FOOTER
+           ══════════════════════════════════════ */
+        .page-footer {
+            margin-top: 8vh;
+            padding-top: 2rem;
+            border-top: 1px solid var(--divider);
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 0.85rem;
+            color: var(--text-light);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .page-footer a {
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        .page-footer a:hover { color: var(--text); }
+
+        /* ══════════════════════════════════════
+           ANIMATIONS
+           ══════════════════════════════════════ */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(22px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .section:nth-of-type(1) { animation: fadeUp 0.55s ease-out 0.28s both; }
+        .section:nth-of-type(2) { animation: fadeUp 0.55s ease-out 0.36s both; }
+        .section:nth-of-type(3) { animation: fadeUp 0.55s ease-out 0.44s both; }
+        .section:nth-of-type(4) { animation: fadeUp 0.55s ease-out 0.52s both; }
+        .section:nth-of-type(5) { animation: fadeUp 0.55s ease-out 0.60s both; }
+        .section:nth-of-type(6) { animation: fadeUp 0.55s ease-out 0.68s both; }
+        .page-footer { animation: fadeUp 0.5s ease-out 0.76s both; }
+
+        /* ══════════════════════════════════════
+           RESPONSIVE
+           ══════════════════════════════════════ */
+        @media (max-width: 600px) {
+            .page { padding: 5vh 20px 10vh; }
+
+            .hero {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+
+            .hero-text { order: 2; }
+
+            .headshot {
+                width: 110px;
+                height: 110px;
+                order: 1;
+            }
+
+            .name { font-size: clamp(2.6rem, 11vw, 3.4rem); }
+
+            .exp-header {
+                flex-direction: column;
+                gap: 0.1rem;
+            }
+
+            .exp-period { order: -1; }
+
+            .contact-row { gap: 0.5rem 1.4rem; }
+
+            .page-footer {
+                flex-direction: column;
+                gap: 4px;
+                text-align: center;
+            }
+
+            .ref-card { padding-left: 1.1rem; }
+        }
+
+        @media print {
+            body::after { display: none; }
+            .headshot { filter: none; }
+            .exp-entry { break-inside: avoid; }
+            .ref-card { break-inside: avoid; }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+
+        <!-- ── Hero ── -->
+        <div class="hero">
+            <div class="hero-text">
+                <h1 class="name">Nima<br><em>Sadri</em></h1>
+                <p class="role">Co-Founder &middot; <a href="https://agents2agents.ai/" target="_blank" rel="noopener" style="color: inherit; text-decoration: none; border-bottom: 1px solid var(--text-light); transition: border-color 0.3s;">Agents2Agents</a></p>
+            </div>
+            <img src="nima-headshot.jpg" alt="Nima Sadri" class="headshot">
         </div>
-      <!-- </div> -->
-      
-    </div>
-    <div class="subsection" style="margin-bottom: 2vh;">
-      <p class="header">Contact Information</p>
-      <div style="flex-direction: column; display: flex;">
-        <!-- <p class="body"> -->
-          <div class="contacticon">
-            <img src="email.svg" />
-            nimasadri11 [at] gmail [dot] com
-          </div>
-          <!-- <br> -->
-          <div class="contacticon">
 
-            <a href="https://www.linkedin.com/in/nimasadri/" target="_blank" style="text-decoration:none" >
-              <img src="linkedin.svg" /> nimasadri11
-            </a>
-          </div>
-          <!-- <br> -->
-          <div class="contacticon">
+        <p class="intro">
+            Co-Founder of <a href="https://agents2agents.ai/" target="_blank" rel="noopener">Agents2Agents</a>. Previously ML Research Engineer at Apple, where I built and shipped ML systems across the full stack &mdash; from CUDA kernels to production deployment, spanning 3D deep learning, multi-modal models, and large-scale distributed training.
+        </p>
 
-            <a href="https://github.com/nimasadri11" target="_blank" style="text-decoration:none" >
-              <img src="github.svg" /> nimasadri11
-            </a>
-          </div>
-        <!-- </p> -->
+        <div class="contact-row">
+            <span class="contact-item">nimasadri11@gmail.com</span>
+            <a class="contact-item" href="https://www.linkedin.com/in/nimasadri/" target="_blank" rel="noopener">LinkedIn</a>
+            <a class="contact-item" href="https://github.com/nimasadri11" target="_blank" rel="noopener">GitHub</a>
+        </div>
 
-      </div>
-    </div>
-    <div class="section" style="margin-bottom: 2vh;">
-      
-
-      
-        <div class="w3-bar">
-          <a href="#education" class="w3-bar-item w3-button w3-border w3-mobile">Education</a>
-          <a href="#work" class="w3-bar-item w3-button w3-border w3-mobile">Work Experiences</a>
-          <a href="#publications" class="w3-bar-item w3-button w3-border w3-mobile">Publications</a>
-          <a href="#projects" class="w3-bar-item w3-button w3-border w3-mobile">Projects</a>
-          <a href="#awards" class="w3-bar-item w3-button w3-border w3-mobile">Honors and Awards</a>
-          <a href="#references" class="w3-bar-item w3-button w3-border w3-mobile">References and Recomendations</a>
-        
-      </div>
-      <!-- <div class="legend">
-
-        <a class="button" href="#education">Education</a>
-        <a class="button">Work Experiences</a>
-        <a class="button">Publications</a>
-        <a class="button">Projects</a>
-        <a class="button">Honors and Awards</a>
-        <a class="button">References and Recomendations</a>
-      </div> -->
-
-    </div>
-    <!-- <hr> -->
-
-    <div class="section">
-      <p class="header">Tech Stack</p>
-      <div class="sectionbody" style="border-color: #f700ff; background-color: #f7abfa;">
-
-      
-        <div class="subsection">
-          <!-- <p class="header">Awards received from University of Waterloo’s Math and Computing faculty </p> -->
-          <p class="body">
-            <div class="stacksection">
-              <div class="stack">
-                <table>
-                  
-                  <tr>
-                    <th>
-                      Machine Learning
-                    </th>
-
-                  </tr>
-                  
-                <tbody>
-                  
-                  <tr>
-                    <td>
-                      TensorFlow, PyTorch, Scikit-learn
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>
-                      Training on multiple GPU and TPU
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>
-                      Anserini, Pyserini, Capreolus
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>
-                      Cleverhans, MLJar
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>
-                      AWS Sagemaker
-                    </td>
-                  </tr>
-                </tbody>
-                </table>
-              </div>
-              <div class="stack">
-                
-                
-                <table>
-                    <tr>
-                      <th>
-                        Web Development
-                      </th>
-
-                    </tr>
-                  <tbody>
-                    <tr>
-                      <td>
-                        ReactJS, React Native, Expo
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>
-                        Node.js, Django, Django Rest Framework
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>
-                        Bootstrap, Material UI
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>
-                        Stripe API, PayPal API
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>
-                        Apache, Nginx, AWS Route 53
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>
-                        Headless Chrome, Puppeteer
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-              <div class="stack">
-                
-                
-                <table class="stack">
-                  <tr>
-                    <th>
-                      Data Analysis
-                    </th>
-
-                  </tr>
-                  <tbody>
-
-                    <tr>
-                      <td>
-                        Pandas, NumPy, and Matplotlib, 
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>
-                        MapReduce, Spark, Hadoop
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>
-                        Grafana
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-              <div class="stack">
-                
-                
-                
-                <table class="stack">
-                  <tr >
-                    <th >
-                      Architecture
-                    </th>
-
-                  </tr>
-                  <tbody>
-                    <tr>
-                      <td>
-                        PostgreSQL, AWS RDS and Aurora, S3, CloudFront
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>
-                        AWS Kinesis, EMR
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>
-                        AWS EC2, Elastic Beanstalk, Lambda
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>
-                        CI/CD: AWS Code Build, Code Deploy, Code Pipeline
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>
-                        Docker, Virtual Machines, Virtual Environments
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+        <!-- ══ Writings ══ -->
+        <div class="section section--writing">
+            <div class="section-head">
+                <div class="section-accent"></div>
+                <h2 class="section-label">Writing</h2>
             </div>
 
+            <a href="random/" class="writings-link">
+                Random Writings
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </a>
 
-          </p>
-        </div>
-      </div>
-    </div>
-    <div class="section" id="education">
-      <p class="header">Education</p>
-      <div class="sectionbody" style="border-color: blue; background-color: #b6cbff;">
-
-      
-        <div class="subsection">
-          <p class="header">University of Waterloo, Bachelor's of Computer Science, 4th year</p>
-          <p class="body">
-            <ul>
-              <li>
-                Advanced level Math and Computer Science courses have formed most of my course load
-                <ul>
-                  <li>Machine Learning Theory and Implementation, Artificial Intelligence, Deep Learning</li>
-                  <li>Algorithms and Data Structures</li>
-                  <li>Compilers & Assemblers</li>
-                  <li>Object Oriented Programming</li>
-                  <li>Proof-Heavy Math Courses: Multi Variable Calculus, Advances Linear Algebra, Combinators</li>
-                  <li>Linear and Non-Linear Optimization</li>
-                  <li>Statistics & Probability</li>
-                </ul>
-              </li>
-              <li>
-                Other courses: Sales, Entrepreneurship; Business Negotiations; Leadership; Academic Writing; Business Writing; Game Theory (Economy)
-              </li>
-            </ul>
-          </p>
-
-
-        </div>
-        <div class="subsection">
-          <p class="header">Extra Courses (Taken Online)</p>
-          <p class="body">
-            <ul>
-              <li>
-                Machine Learning, CS 299, Stanford University (2020)
-              </li>
-              <li>
-                Natural Language Processing with Deep Learning, CS 224N, Stanford University (2020)
-              </li>
-              <li>
-                Algorithms: Design and Analysis at Stanford (2018)
-              </li>
-              <li>
-                Operating System and System Programming, CS 162, Berkeley University (2019)
-              </li>
-              <li>Neural Networks for Machine Learning at the University of Toronto (2019)</li>
-              <li>Functional Programming Principles in Scala at École Polytechnique Fédérale de Lausanne (2019)</li>
-              <li>CS50, fundamentals of computer science at Harvard (2018)</li>
-              <li>Bitcoin and Blockchain, Princeton University (2018) </li>
-            </ul>
-          </p>
-        </div>
-      </div>
-    <div class="section" id="work">
-      <p class="header">Work Experiences</p>
-      <div class="sectionbody" style="border-color: #40ff00; background-color: #c6ffb4;">
-        <!-- <div class="sectionbody" style="border-color: red; background-color: #fec3c3;"></div> -->
-
-      
-        <div class="subsection">
-          <p class="header">Data Infrastructure Engineer at Blockthrough, Toronto  </p>
-          <p class="period">Summer 2018 and 2019</p>
-          <p class="body">
-            <ul>
-              <li>
-                Fully responsible for designing, implementing, and testing a scalable, efficient, real-time data analytics platform for the company, capable of analyzing TBs of data per day and reporting the results on the company's analytics dashboard
-              </li>
-              <li>
-                Used Spark as the data engine, AWS EMR clusters for deploying Spark to production, AWS kinesis for real time streaming of data, PostgreSQL for data storage, s3 for storing backup of the analyzed results, and Grafana as the internal dashboard
-              </li>
-              <li>This analytics dashboard decreased the server costs by $50k a month, increased the performance, decreased downtimes, and made the analytics engine much more scalable</li>
-            </ul>
-          </p>
-        </div>
-        <div class="subsection">
-          <p class="header">Software Engineer at Levyx, California  </p>
-          <p class="period">Fall 2019</p>
-          <p class="body">
-            <ul>
-              <li>
-                Lead a team of 4 to build a fork of Pandas and Numpy libraries, where data structures (e.g. matrices) are stored in SSD, while preserving a RAM-like performance 
-              </li>
-              <li> 
-                Worked extensively with Numpy and Panda's python source code, modifying it to use company's patented data structure. Used in-house servers alongside Jenkins for deployment. Low level programming using C and Levyx's patented data structure (Helium).
-              </li>
-              <li>
-                Wrote a Whitepaper survey to showcase the benefits of using our forked Pandas Pandas version compared to the default fork – this was used to market the product to investment banks and quants.
-              </li>
-            </ul>
-          </p>
-        </div>
-        <div class="subsection">
-          <p class="header">Avybe, Co-Founder and CEO</p>
-          <p class="period">April 2020 - Present</p>
-          <p class="body">
-            <ul>
-              <li>
-                Avybe allows social media influencers to monetize and fans to get personal interactions with their favourite creator through one-on-one video calls
-              </li>
-              <li>
-                Built the initial product using ReactJS, React Native (Expo), and Django Rest Framework. Deployed to production using AWS Beanstalk. Used AWS Chime SDK, RDS, s3, and Lambda.
-              </li>
-              <li>
-                I hired and lead 12 engineers
-              </li>
-              <li>
-                I started and maintained investor relationships with ~20 VCs and angels
-              </li>
-            </ul>
-          </p>
-        </div>
-      </div>
-    </div>
-    <div class="section" id="publications">
-      
-      <p class="header">Publications</p>
-      <div class="sectionbody" style="border-color: #ffa200; background-color: #fadead;">
-        <!-- <div class="sectionbody" style="border-color: #9d00ff; background-color: #eac7ff;"></div> -->
-         <!-- <div class="subsection"> -->
-        <!-- <p class="header">Project 1</p> -->
-        <p class="body">
-          1. <a href="https://arxiv.org/abs/2208.06955" target="_blank">Continuous Active Learning Using Pretrained Transformers</a> | August 2022.
-          | Nima Sadri, <a href="https://cormack.uwaterloo.ca/" target="_blank">Gordon V. Cormack</a>.
-        </p>
-        <p class="body">
-          2. <a href="https://arxiv.org/abs/2208.06959" target="_blank">Evaluating Dense Passage Retrieval using Transformers</a> | Nima Sadri | August 2022.
-        </p>
-        <p class="body">
-          3. <a href="https://arxiv.org/abs/2108.06310" target="_blank">MeetSum: Transforming Meeting Transcript Summarization using Transformers!</a> | August 2021.
-          | Nima Sadri, Bohan Zhang, Bihan Liu
-        </p>
-
-
-      <!-- </div> -->
-        
-      </div>
-     
-    </div>
-    <div class="section" id="projects">
-      <p class="header">Projects</p>
-      <div class="sectionbody" style="border-color: #9d00ff; background-color: #eac7ff;">
-        <div class="subsection">
-          <p class="header">Object Detection</p>
-          <p class="body">
-            <ul>
-              <li>
-                Built a simple version of Amazon Go's cashierless store that automatically detects when a customer picks an item from the shelf
-              </li>
-              <li>
-                Used AWS Rekognition to train a ML model, Firestore as a real-time datastore, React Native for consumerfacing app, ReactJS for store owner dashboard, and Django Rest Framework for web backend
-              </li>
-            </ul>
-          </p>
-        </div>
-        <div class="subsection">
-          <p class="header">Information Retrieval Using Machine Learning</p>
-          <p class="body">
-            <ul>
-              <li>
-                Trained large Deep Learning Natural Language Processing Information Retrival models (e.g. monoBERT) using the Capreolus open source library
-              </li>
-              <li>
-                Benchmarked and reproduced research results in NLP Information Retrieval using Anserini and Pyserini libraries
-              </li>
-            </ul>
-          </p>
-        </div>
-        <div class="subsection">
-          <p class="header">Compliers</p>
-          <p class="body">
-            <ul>
-              <li>
-                Wrote an interpreter for LISP
-              </li>
-              <li>
-                Implemented a compiler for a simplified C-like language
-              </li>
-            </ul>
-          </p>
-        </div>
-        <div class="subsection">
-          <p class="header">Data Structures and Algorithms</p>
-          <p class="body">
-            <ul>
-              <li>
-                Implemented a large portion of C++ standard library from scratch
-              </li>
-              <li>
-                Designed and implemented memory-optimized data structures in C 
-              </li>
-              <li>
-                Implemented a variety of algorithms and data structures with optimized time complexity using python and C
-              </li>
-            </ul>
-          </p>
-        </div>
-        <div class="subsection">
-          <p class="header">Machine Learning Algorithms</p>
-          <p class="body">
-            <ul>
-              <li>
-                Implemented classical ML algorithms (Linear Regression, Logistic Regression, Ridge Regression, SVMs, Decision Trees) from scratch
-              </li>
-              <li>
-                Implemented fundamental deep neural networks models (CNN, RNN, VAE, GAN, Transformers) using TensorFlow and PyTorch
-              </li>
-              <li>
-                Implemented reinforcement algorithms (e.g. ADP), decision trees, Baysian Networks, and HMMs in Python using NumPy
-              </li>
-            </ul>
-          </p>
-        </div>
-        <div class="subsection">
-          <p class="header">Mobile App</p>
-          <p class="body">
-            <ul>
-              <li>
-                Built a book reading mobile app using django-rest-framework as backend and React Native as front-end; deployed using Beanstalk and Amplify
-              </li>
-             
-            </ul>
-          </p>
-        </div>
-
-
-      </div>
-    </div>
-    <div class="section" id="awards">
-      <p class="header">Honors and Awards</p>
-      <div class="sectionbody" style="border-color: #ff0000; background-color: #fca8a8;">
-
-      
-        <div class="subsection">
-          <p class="header">Awards received from University of Waterloo’s Math and Computing faculty </p>
-          <p class="body">
-            <ul>
-              <li>
-                Euclid Contest: Certificate of Distinction (2018)
-              </li>
-              <li>
-                Fermat Contest: Certificate of Distinction (2017)
-              </li>
-              <li>
-                Canadian Senior Math Contest: Certificate of Distinction (2016)
-              </li>
-              <li>
-                Cayley Contest: Certificate of Distinction (2016)
-              </li>
-            </ul>
-          </p>
-        </div>
-        <div class="subsection">
-          <p class="header">Other Awards</p>
-          <p class="body">
-            <ul>
-              <li>
-                Thiel Fellowship Candidate (2021)
-              </li>
-              <li>
-                Sir Isaac Newton Exam: Certificate of Distinction (2017 and 2018, University of Waterloo)
-              </li>
-            </ul>
-          </p>
-        </div>
-        <div class="subsection">
-          <p class="header">Scholarships</p>
-          <p class="body">
-            <ul>
-              <li>
-                Over $30,000 in scholarships
-              </li>
-            </ul>
-          </p>
-        </div>
-      </div>
-    </div>
-    <div class="section" id="references">
-      <p class="header">References and Recomendations</p>
-      <div class="sectionbody" style="border-color: #00ffee; background-color: #c4fffb;">
-        <div class="subsection">
-          <p class="header">Direct References</p>
-          <p class="body indent">
-           
-                You can ask me to provide references by emailing me: nimasadri11 [at] gmail [dot] com
-    
-          </p>
-          <div class="subsection">
-            <p class="header">Recomendations and Testimonials</p>
-            <p class="body indent">
-              I have recieved some kind recomendations on LinkedIn (which I will place here for convinience). To validate their integrity, see the “Recommendation” section of my <a href="https://www.linkedin.com/in/nimasadri/" target="_blank">LinkedIn page </a>
-              <ul>
-                <li>
-                  <strong>Reza Sadri (PhD, Computer Science, UCLA)</strong>
-                  <br>
-                  <i>Disclosure: Reza is my uncle (and mentor)</i>
-                  <br>
-                  I was hesitent to write a recommendation for a relative, but after a series of outstanding achievements by Nima, I thought to myself that it was just wrong not to recognize him. In a nutshell, Nima is the ulitmate "get it done" person. A few times he has told me that he was to embark on something really big and I have seen him how he gets it done against many odds. I believe this is rooted in a collection of characteristics: very knowledgable and always eager to learn; a great and attentive listener and the ulitmate doer.
-                </li>
-                <br>
-                <li>
-                  <strong>Shahin Rahbariasl (Master's, Computer Science, University of Waterloo)</strong>
-                  <br>
-                  I worked with Nima closely during his co-op at Blockthrough. He's a talented programmer and also a very quick learner who can get the grasp of any technology needed to get the tasks done. He was always open to suggestions and also he actively came up with different solutions for various challenges. Overall, I enjoyed working with him and I think whatever team he joins, he can bring a lot of value.
-                </li>
-                <br>
-                <li>
-                  <strong>Siddharth Choudhuri (PhD, Computer Science, UC Irvine)</strong>
-                  <br>
-                  Nima was our intern at Levyx. In a short span of his internship, Nima was able to ramp up on our Python dictionary wrapper, understand our key-value integration, and run performance reports. Nima is sharp and tries to understand the business side of things too. Nima will make a great hire!
-                </li>
-                <br>
-                <li>
-                  <strong>Jim Yu (Senior Software Engineer)</strong>
-                  <br>
-                  It's a pleasure to work with Nima. He has great initiatives and abilities to tackle complex problems by both following instructions/suggestions and independent thinking. He is also humble, hard-working and a quick learner.
-                </li>
-                <br>
-                <li>
-                  <strong>Simon Liu (Software Engineer, Coursera)</strong>
-                  <br>
-                  Nima has an extraordinary ability to grasp theory and apply it in practice, to complex software systems. He has been a pleasure to work with since he is amicable and strives to ensure flow of communication and understanding among team members. I am confident that Nima will quickly bring value to any project he contributes to.
-                </li>
-                <br>
-                <li>
-                  <strong>Richard Luo (Senior Software Engineer)</strong>
-                  <br>
-                  From the time Nima co-oped at Blockthrough, he was quickly able to show the ability to problem solve both in groups and independently. He always asks questions if something is confusing him and he has shown diligence on the projects he has worked on from start to finish.
-                </li>
-                <br>
-                <li>
-                  <strong>Arash Nabili (Master's, Computer Science, UC Irvine)</strong>
-                  <br>
-                  Nima is smart and very talented. He is a quick learner, and brings new ideas to the table. He is passionate about his work and isn't afraid of tackling new challenges. It was a pleasure working with Nima at Levyx!
-                </li>
-              </ul>
-              
+            <p class="aside">
+                When not building &mdash; alternative &amp; indie rock, skateboarding, Muay Thai.
             </p>
+        </div>
 
-      </div>
+        <!-- ══ Experience ══ -->
+        <div class="section section--experience">
+            <div class="section-head">
+                <div class="section-accent"></div>
+                <h2 class="section-label">Experience</h2>
+            </div>
+
+            <div class="exp-entry">
+                <div class="exp-header">
+                    <span class="exp-company"><a href="https://agents2agents.ai/" target="_blank" rel="noopener" style="color: inherit; text-decoration: none;">Agents2Agents</a></span>
+                    <span class="exp-period">Jun 2025 &ndash; Present</span>
+                </div>
+                <p class="exp-role">Co-Founder</p>
+            </div>
+
+            <div class="exp-entry">
+                <div class="exp-header">
+                    <span class="exp-company">Apple</span>
+                    <span class="exp-period">Apr 2022 &ndash; Jun 2025</span>
+                </div>
+                <p class="exp-role">ML Research Engineer &mdash; 3D DL Algorithms &amp; Infrastructure</p>
+                <ul class="exp-bullets">
+                    <li>Implemented, trained, and deployed ML models to production for privacy, object detection, semantic segmentation, graph prediction, anomaly detection, and visual localization</li>
+                    <li>Multi-modal models across 2D images, polygons, point cloud lidar, and language. Owned pipelines end-to-end</li>
+                    <li>Invented novel generative models and training methods</li>
+                    <li>Core developer of internal ML library used by 8 teams across 3 departments</li>
+                    <li>Implemented optimized distributed training (~128 GPU) with FSDP integration and custom CUDA kernels</li>
+                    <li>Implemented SwinV2, MobileNet, ViT, MaskDINO from scratch</li>
+                    <li>Model distillation, JIT scripting, ONNX, TensorRT export. Highly optimized production C, C++, CUDA code</li>
+                    <li>Co-owner of NVIDIA/CUDA infrastructure (drivers, torch compilation, Docker)</li>
+                    <li>Reviewed 360+ PRs, initiated nightly testing for all production models</li>
+                </ul>
+            </div>
+
+            <div class="exp-entry">
+                <div class="exp-header">
+                    <span class="exp-company">Avybe</span>
+                    <span class="exp-period">Apr 2020 &ndash; Apr 2022</span>
+                </div>
+                <p class="exp-role">Co-Founder &amp; CEO</p>
+                <ul class="exp-bullets">
+                    <li>Built a platform for social media influencers to monetize through one-on-one video calls</li>
+                    <li>Hired and led a team of 12 engineers. Raised $75k in VC funding</li>
+                </ul>
+            </div>
+
+            <div class="exp-entry">
+                <div class="exp-header">
+                    <span class="exp-company">University of Waterloo</span>
+                    <span class="exp-period">Sep 2021 &ndash; Aug 2022</span>
+                </div>
+                <p class="exp-role">Research Assistant &mdash; NLP</p>
+                <ul class="exp-bullets">
+                    <li>NLP research under Prof. Jimmy Lin and Prof. Gordon Cormack</li>
+                </ul>
+            </div>
+
+            <div class="exp-entry">
+                <div class="exp-header">
+                    <span class="exp-company">Levyx</span>
+                    <span class="exp-period">Sep 2019 &ndash; Apr 2020</span>
+                </div>
+                <p class="exp-role">Software Engineer</p>
+                <ul class="exp-bullets">
+                    <li>Led a team of 4 to build a high-performance fork of Pandas and NumPy with SSD storage delivering RAM-like performance</li>
+                    <li>Low-level programming in C using Levyx's patented data structure (Helium)</li>
+                </ul>
+            </div>
+
+            <div class="exp-entry">
+                <div class="exp-header">
+                    <span class="exp-company">Blockthrough</span>
+                    <span class="exp-period">Summers 2018 &amp; 2019</span>
+                </div>
+                <p class="exp-role">Data Infrastructure Engineer</p>
+                <ul class="exp-bullets">
+                    <li>Designed and built a scalable, real-time analytics platform processing TBs of data per day</li>
+                    <li>Reduced infrastructure costs by $50k/month</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- ══ Publications ══ -->
+        <div class="section section--publications">
+            <div class="section-head">
+                <div class="section-accent"></div>
+                <h2 class="section-label">Publications</h2>
+            </div>
+
+            <div class="pub-entry">
+                <p class="pub-title"><span class="pub-number">1.</span><a href="https://arxiv.org/abs/2208.06955" target="_blank" rel="noopener">Continuous Active Learning Using Pretrained Transformers</a></p>
+                <p class="pub-meta">Nima Sadri, Gordon V. Cormack &middot; August 2022</p>
+            </div>
+
+            <div class="pub-entry">
+                <p class="pub-title"><span class="pub-number">2.</span><a href="https://arxiv.org/abs/2208.06959" target="_blank" rel="noopener">Evaluating Dense Passage Retrieval Using Transformers</a></p>
+                <p class="pub-meta">Nima Sadri &middot; August 2022</p>
+            </div>
+
+            <div class="pub-entry">
+                <p class="pub-title"><span class="pub-number">3.</span><a href="https://arxiv.org/abs/2108.06310" target="_blank" rel="noopener">MeetSum: Transforming Meeting Transcript Summarization Using Transformers!</a></p>
+                <p class="pub-meta">Nima Sadri, Bohan Zhang, Bihan Liu &middot; August 2021</p>
+            </div>
+
+            <p class="pub-note">+ confidential research at Apple</p>
+        </div>
+
+        <!-- ══ Education ══ -->
+        <div class="section section--education">
+            <div class="section-head">
+                <div class="section-accent"></div>
+                <h2 class="section-label">Education</h2>
+            </div>
+
+            <h3 class="edu-degree">BSc Computer Science, Honours</h3>
+            <p class="edu-details">University of Waterloo &middot; 2022 &middot; GPA 3.9</p>
+        </div>
+
+        <!-- ══ Tech Stack ══ -->
+        <div class="section section--stack">
+            <div class="section-head">
+                <div class="section-accent"></div>
+                <h2 class="section-label">Stack</h2>
+            </div>
+
+            <div class="stack-grid">
+                <span class="stack-tag">Torch</span>
+                <span class="stack-tag">CUDA</span>
+                <span class="stack-tag">cuDNN</span>
+                <span class="stack-tag">cuBLAS</span>
+                <span class="stack-tag">NCCL</span>
+                <span class="stack-tag">C</span>
+                <span class="stack-tag">C++</span>
+                <span class="stack-tag">Docker</span>
+                <span class="stack-tag">TensorRT</span>
+                <span class="stack-tag">ONNX</span>
+                <span class="stack-tag">FSDP</span>
+                <span class="stack-tag">DeepSpeed</span>
+                <span class="stack-tag">CoreML</span>
+                <span class="stack-tag">TensorFlow</span>
+                <span class="stack-tag">Protobuf</span>
+                <span class="stack-tag">OpenVINO</span>
+                <span class="stack-tag">Faiss</span>
+                <span class="stack-tag">AWS</span>
+                <span class="stack-tag">PostgreSQL</span>
+            </div>
+        </div>
+
+        <!-- ══ References ══ -->
+        <div class="section section--references">
+            <div class="section-head">
+                <div class="section-accent"></div>
+                <h2 class="section-label">References &amp; Recommendations</h2>
+            </div>
+
+            <div class="ref-grid">
+
+                <div class="ref-card">
+                    <p class="ref-quote">I was hesitant to write a recommendation for a relative, but after a series of outstanding achievements by Nima, I thought to myself that it was just wrong not to recognize him. In a nutshell, Nima is the ultimate "get it done" person. A few times he has told me that he was to embark on something really big and I have seen him how he gets it done against many odds. I believe this is rooted in a collection of characteristics: very knowledgeable and always eager to learn; a great and attentive listener and the ultimate doer.</p>
+                    <p class="ref-disclosure">Disclosure: Reza is my uncle (and mentor)</p>
+                    <p class="ref-author">Reza Sadri</p>
+                    <p class="ref-author-title">PhD, Computer Science, UCLA</p>
+                </div>
+
+                <div class="ref-card">
+                    <p class="ref-quote">I worked with Nima closely during his co-op at Blockthrough. He's a talented programmer and also a very quick learner who can get the grasp of any technology needed to get the tasks done. He was always open to suggestions and also he actively came up with different solutions for various challenges. Overall, I enjoyed working with him and I think whatever team he joins, he can bring a lot of value.</p>
+                    <p class="ref-author">Shahin Rahbariasl</p>
+                    <p class="ref-author-title">Master's, Computer Science, University of Waterloo</p>
+                </div>
+
+                <div class="ref-card">
+                    <p class="ref-quote">Nima was our intern at Levyx. In a short span of his internship, Nima was able to ramp up on our Python dictionary wrapper, understand our key-value integration, and run performance reports. Nima is sharp and tries to understand the business side of things too. Nima will make a great hire!</p>
+                    <p class="ref-author">Siddharth Choudhuri</p>
+                    <p class="ref-author-title">PhD, Computer Science, UC Irvine</p>
+                </div>
+
+                <div class="ref-card">
+                    <p class="ref-quote">It's a pleasure to work with Nima. He has great initiatives and abilities to tackle complex problems by both following instructions/suggestions and independent thinking. He is also humble, hard-working and a quick learner.</p>
+                    <p class="ref-author">Jim Yu</p>
+                    <p class="ref-author-title">Senior Software Engineer</p>
+                </div>
+
+                <div class="ref-card">
+                    <p class="ref-quote">Nima has an extraordinary ability to grasp theory and apply it in practice, to complex software systems. He has been a pleasure to work with since he is amicable and strives to ensure flow of communication and understanding among team members. I am confident that Nima will quickly bring value to any project he contributes to.</p>
+                    <p class="ref-author">Simon Liu</p>
+                    <p class="ref-author-title">Software Engineer, Coursera</p>
+                </div>
+
+                <div class="ref-card">
+                    <p class="ref-quote">From the time Nima co-oped at Blockthrough, he was quickly able to show the ability to problem solve both in groups and independently. He always asks questions if something is confusing him and he has shown diligence on the projects he has worked on from start to finish.</p>
+                    <p class="ref-author">Richard Luo</p>
+                    <p class="ref-author-title">Senior Software Engineer</p>
+                </div>
+
+                <div class="ref-card">
+                    <p class="ref-quote">Nima is smart and very talented. He is a quick learner, and brings new ideas to the table. He is passionate about his work and isn't afraid of tackling new challenges. It was a pleasure working with Nima at Levyx!</p>
+                    <p class="ref-author">Arash Nabili</p>
+                    <p class="ref-author-title">Master's, Computer Science, UC Irvine</p>
+                </div>
+
+            </div>
+
+            <p class="ref-footer">
+                To validate, see the Recommendations section of my <a href="https://www.linkedin.com/in/nimasadri/" target="_blank" rel="noopener">LinkedIn page</a>.
+            </p>
+        </div>
+
+        <footer class="page-footer">
+            <span>Nima Sadri</span>
+            <a href="random/">Writings</a>
+        </footer>
+
     </div>
-
-
-  </body>
-  <style>
-    body {
-      width: 98%;
-      margin-left: 1%;
-      /* font-size: 16px; */
-      font-family: 'Times New Roman', Times, serif;
-      /* background-color: black;
-      color: whi; */
-    }
-    .section {
-      
-      
-    }
-    .section .header {
-      font-size: 32px;
-      margin: 0px;
-      margin-bottom: 2vh;
-
-      
-    }
-    .sectionbody {
-      border-left: 8px solid ;
-      padding-left: 1vw;
-      /* min-height: 2vh; */
-      padding-top: 1vh;
-      padding-bottom: 1vh;
-      margin-bottom: 2vh;
-      
-    }
-    .subsection {
-      margin: 0px;
-      margin-bottom: 1vh;
-      
-
-
-    }
-    .subsection .header {
-      font-size: 24px;
-      margin: 0px;
-
-    }
-    .body {
-      margin: 0px;
-
-    }
-    .period {
-
-    }
-    .indent {
-      margin-top: 1vh; 
-      margin-bottom: 1vh;
-      margin-left: 2vw;
-    }
-    /* table {
-      border:1px solid black;
-    }
-    td {
-      border: 1px solid black;
-    } */
-    table {
-      border-collapse: collapse;
-      /* border:1px solid black; */
-      margin-bottom: 2vh;
-      text-align: center;
-
-    }
-    td {
-      padding: 3px 5px;
-    }
-    td { 
-      border: solid;
-      border-width: 1px;
-      /* width: 100px; */ 
-    }
-    th {
-      font-size: 20px;
-    }
-    .stack  {
-      /* flex: 1; */
-      /* width: 500px; */
-      
-    }
-    .stackheader {
-      /* text-align: center; */
-    }
-    .stacksection {
-      display: grid;
-      grid-gap: 1rem;
-      place-items: center;
-
-    
-    }
-
-    .headshot {
-      width: 20vh;
-      height: 20vh;
-      border-radius: 50%;
-      margin-left: auto;
-      
-
-    }
-    .legend {
-      margin-top: 2vh;
-      /* display: flex; */
-      /* flex: 1; */
-      background-color: #00ffee;
-      
-      
-      
-    }
-
-
-    .button {
-      
-      flex: 1;
-      font-size: 20px;
-      text-align: center;
-      /* align-self: center; */
-      border: black solid 1px;
-      padding-top: 0;
-      
-    
-      
-      
-      
-    }
-    .w3-bar-item {
-      /* background-color: #5900ff; */
-      /* color: white */
-      /* border-radius: 10px; */
-    }
-    .w3-bar-item:hover {
-      /* background-color: #a070ff !important; */
-      
-    }
-    .contacticon {
-      margin-bottom: 1vh;
-    }
-
-    @media (min-width: 801px) {
-      .stacksection { 
-        grid-template-columns: repeat(2, 1fr); 
-      }
-    }
-    @media (min-width: 1201px) {
-      .stacksection { 
-        grid-template-columns: repeat(4, 1fr); 
-      }
-      .sectionbody {
-        padding-right: 2vw;
-        padding-left: 2vw;
-      }
-    }
-
-  </style>
+</body>
 </html>
