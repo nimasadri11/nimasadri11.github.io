@@ -7,6 +7,17 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <script>
+        window.addEventListener('message', function(e) {
+            if (e.data && e.data.type === 'iframe-resize') {
+                document.querySelectorAll('.terminal-embed iframe').forEach(function(iframe) {
+                    if (iframe.contentWindow === e.source) {
+                        iframe.style.height = e.data.height + 'px';
+                    }
+                });
+            }
+        });
+    </script>
     <style>
         :root {
             --bg: #F6F1EB;
@@ -120,6 +131,24 @@
             box-shadow: 0 4px 24px rgba(28, 25, 23, 0.12);
         }
 
+        .content figure.terminal-embed {
+            width: 100%;
+            max-width: 700px;
+            left: auto;
+            transform: none;
+            position: static;
+        }
+
+        .content figure.terminal-embed iframe {
+            width: 100%;
+            border: none;
+            border-radius: 6px;
+            box-shadow: 0 4px 24px rgba(28, 25, 23, 0.12);
+            background: #0d1117;
+            display: block;
+            overflow: hidden;
+        }
+
         .content figure figcaption {
             font-size: 0.82rem;
             color: var(--text-light);
@@ -170,8 +199,8 @@
 
             <p>We ran into this building an AI research agent. The agent reads papers, does synthesis, comparative analysis &mdash; stuff that produces long, structured output. We tried chat first because that's what everyone does. It didn't work. Not because the content was bad, but because chat is a conversation interface and the output was a document.</p>
 
-            <figure>
-                <img src="ai-output-chat/reading-view-expanded-detail.png" alt="Reading view showing a paper synthesis with navigable sections">
+            <figure class="terminal-embed">
+                <iframe src="ai-output-chat/reading-view-1.html" scrolling="no" title="Reading view showing a paper synthesis with navigable sections"></iframe>
                 <figcaption>Reading view with navigable sections and foldable detail blocks</figcaption>
             </figure>
 
@@ -183,13 +212,13 @@
 
             <p>This means every question makes the document better instead of making the chat log longer. Your understanding accumulates in one place.</p>
 
-            <figure>
-                <img src="ai-output-chat/reading-view-followup-question.png" alt="Asking a follow-up question inside the document">
+            <figure class="terminal-embed">
+                <iframe src="ai-output-chat/reading-view-2.html" scrolling="no" title="Asking a follow-up question inside the document"></iframe>
                 <figcaption>Asking a follow-up question inside the document</figcaption>
             </figure>
 
-            <figure>
-                <img src="ai-output-chat/reading-view-updated-section.png" alt="The section updates in place with the answer woven in">
+            <figure class="terminal-embed">
+                <iframe src="ai-output-chat/reading-view-3.html" scrolling="no" title="The section updates in place with the answer woven in"></iframe>
                 <figcaption>The section updates in place with the answer woven in</figcaption>
             </figure>
 
@@ -219,5 +248,6 @@
             <a href="./">Back to writings</a>
         </footer>
     </div>
+
 </body>
 </html>

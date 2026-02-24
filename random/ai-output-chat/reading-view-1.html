@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reading View — Expanded Detail</title>
+    <style>
+        /* ============================================
+           Terminal Reading View — Base Styles
+           A dark TUI-style reading view for paper analysis.
+           Colors, spacing, and typography tuned to match
+           a real terminal application.
+           ============================================ */
+
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            background: #0a0e14;
+        }
+
+        /* --- Terminal Container --- */
+        .terminal {
+            background: #0d1117;
+            color: #c9d1d9;
+            font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', Menlo, Consolas, 'Liberation Mono', monospace;
+            font-size: 13px;
+            line-height: 1.55;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- Top Header Bar --- */
+        .terminal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 16px;
+            background: #0d1117;
+            border-bottom: 1px solid #21262d;
+            flex-shrink: 0;
+            min-height: 32px;
+        }
+
+        .terminal-header .title {
+            color: #e6edf3;
+            font-weight: 700;
+            font-size: 13px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex: 1;
+            margin-right: 16px;
+        }
+
+        .terminal-header .page-indicator {
+            color: #6e7681;
+            font-size: 13px;
+            flex-shrink: 0;
+        }
+
+        /* --- Content Area --- */
+        .terminal-content {
+            flex: 1;
+            padding: 16px 20px;
+            overflow-y: auto;
+        }
+
+        /* --- Section Heading (e.g., ✓ Method) --- */
+        .section-heading {
+            color: #3fb950;
+            font-weight: 700;
+            margin-bottom: 12px;
+            font-size: 13px;
+        }
+
+        .section-heading .checkmark {
+            color: #3fb950;
+            margin-right: 6px;
+        }
+
+        /* --- Numbered Items (1), 2), etc.) --- */
+        .numbered-item {
+            margin-bottom: 14px;
+        }
+
+        .numbered-item .item-number {
+            color: #c9d1d9;
+        }
+
+        .numbered-item .item-label {
+            color: #e6edf3;
+            font-weight: 700;
+        }
+
+        .numbered-item .item-text {
+            color: #c9d1d9;
+        }
+
+        /* --- Bold text --- */
+        b, strong {
+            color: #e6edf3;
+            font-weight: 700;
+        }
+
+        /* --- Italic text --- */
+        i, em {
+            font-style: italic;
+            color: #c9d1d9;
+        }
+
+        /* --- Inline code (e.g., K=6, δ=0.4) --- */
+        code {
+            color: #79c0ff;
+            font-family: inherit;
+            font-size: inherit;
+            background: rgba(56, 139, 253, 0.1);
+            padding: 1px 5px;
+            border-radius: 3px;
+        }
+
+        /* --- Bullet List (– style) --- */
+        .bullet-list {
+            margin: 8px 0;
+            padding-left: 20px;
+        }
+
+        .bullet-list .bullet-item {
+            margin-bottom: 4px;
+        }
+
+        .bullet-list .bullet-char {
+            color: #6e7681;
+            margin-right: 6px;
+        }
+
+        /* --- Continuation paragraph (after bullets, under same item) --- */
+        .continuation {
+            margin-top: 10px;
+            margin-bottom: 14px;
+        }
+
+        /* --- Foldable Section ([+] collapsed) --- */
+        .foldable {
+            margin-top: 4px;
+            margin-bottom: 14px;
+            padding-left: 20px;
+        }
+
+        .foldable .fold-indicator {
+            color: #3fb950;
+            font-weight: 700;
+        }
+
+        .foldable .fold-summary {
+            color: #6e7681;
+            margin-left: 4px;
+        }
+
+        /* --- Follow-up Question Indicator --- */
+        .follow-up-question {
+            margin-top: 4px;
+            margin-bottom: 10px;
+            padding-left: 20px;
+        }
+
+        .follow-up-question .question-indicator {
+            color: #58a6ff;
+            font-weight: 700;
+        }
+
+        .follow-up-question .question-text {
+            color: #8b949e;
+            margin-left: 4px;
+        }
+
+        /* --- Agent Answer (inline answer with subtle left border) --- */
+        .agent-answer {
+            border-left: 2px solid rgba(56, 189, 248, 0.25);
+            padding-left: 18px;
+            margin: 10px 0 14px 0;
+        }
+
+        .agent-answer p {
+            margin-bottom: 10px;
+        }
+
+        .agent-answer p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* --- Bottom Footer Bar --- */
+        .terminal-footer {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 6px 16px;
+            background: #0d1117;
+            border-top: 1px solid #21262d;
+            flex-shrink: 0;
+            min-height: 28px;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .terminal-footer .shortcut {
+            color: #6e7681;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .terminal-footer .shortcut .key {
+            color: #8b949e;
+            font-weight: 600;
+        }
+
+        .terminal-footer .shortcut .sep {
+            color: #30363d;
+            margin: 0 4px;
+        }
+
+        /* --- Status Bar (system info, shown in Image 2/3) --- */
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 16px;
+            background: #161b22;
+            border-top: 1px solid #21262d;
+            flex-shrink: 0;
+            min-height: 24px;
+            font-size: 12px;
+        }
+
+        .status-bar .status-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-bar .prompt-indicator {
+            background: #238636;
+            color: #ffffff;
+            padding: 1px 6px;
+            border-radius: 2px;
+            font-weight: 700;
+            font-size: 11px;
+        }
+
+        .status-bar .agent-label {
+            background: #238636;
+            color: #ffffff;
+            padding: 1px 6px;
+            border-radius: 2px;
+            font-size: 11px;
+        }
+
+        .status-bar .status-right {
+            color: #484f58;
+            display: flex;
+            gap: 16px;
+        }
+
+        /* --- Input Area (for follow-up question typing, Image 2) --- */
+        .input-area {
+            border-top: 1px solid #21262d;
+            padding: 8px 16px;
+            background: #0d1117;
+            flex-shrink: 0;
+        }
+
+        .input-area .input-shortcuts {
+            color: #6e7681;
+            font-size: 12px;
+            margin-bottom: 6px;
+        }
+
+        .input-area .input-shortcuts .key {
+            color: #8b949e;
+        }
+
+        .input-area .input-line {
+            color: #c9d1d9;
+            font-size: 13px;
+        }
+
+        .input-area .cursor {
+            display: inline-block;
+            width: 7px;
+            height: 15px;
+            background: #58a6ff;
+            vertical-align: text-bottom;
+            animation: blink 1s step-end infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        /* --- Highlight Added (green border for agent-added sections, Image 3) --- */
+        .highlight-added {
+            border-left: 2px solid #3fb950;
+            padding-left: 18px;
+            margin: 10px 0 14px 0;
+        }
+
+        .highlight-added p {
+            margin-bottom: 10px;
+        }
+
+        .highlight-added p:last-child {
+            margin-bottom: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="terminal">
+        <!-- Top Header Bar -->
+        <div class="terminal-header">
+            <span class="title">SKILLRL: Evolving Agents via Recursive Skill-Augmented Reinforcement Learning</span>
+            <span class="page-indicator">2/4</span>
+        </div>
+
+        <!-- Content Area -->
+        <div class="terminal-content">
+            <!-- Section Heading -->
+            <div class="section-heading">
+                <span class="checkmark">✓</span> Method
+            </div>
+
+            <!-- Item 1 -->
+            <div class="numbered-item">
+                <span class="item-number">1)</span> <span class="item-label">Skill distillation from trajectories.</span> <span class="item-text">A base policy collects trajectories for each task. A strong teacher model then summarizes them into skills. Successes become concise decision principles and applicability conditions. Failures are turned into <b>counterfactual lessons</b> that explicitly name the failure point, flawed reasoning, corrective action, and a preventive principle, converting noisy negative traces into actionable guidance.</span>
+            </div>
+
+            <!-- Item 2 -->
+            <div class="numbered-item">
+                <span class="item-number">2)</span> <span class="item-label">SKILLBANK: a hierarchical skill library.</span> <span class="item-text">Skills are stored as triples (name, principle, applicability). The library is split into:</span>
+            </div>
+
+            <div class="bullet-list">
+                <div class="bullet-item"><span class="bullet-char">&ndash;</span> <b>General skills</b> that apply across tasks (e.g., systematic exploration, pre-action sanity checks).</div>
+                <div class="bullet-item"><span class="bullet-char">&ndash;</span> <b>Task-specific skills</b> that apply to task families (e.g., ALFWorld or WebShop sub-tasks).</div>
+            </div>
+
+            <div class="continuation">At inference time the agent always conditions on general skills and retrieves up to <code>K=6</code> task-specific skills whose embedding similarity to the task description exceeds a threshold (<code>δ=0.4</code>). This yields a compact context (10–20× shorter than raw trajectories) while preserving reasoning-relevant guidance.</div>
+
+            <!-- Item 3 -->
+            <div class="numbered-item">
+                <span class="item-number">3)</span> <span class="item-label">Cold-start and RL training.</span> <span class="item-text">Before RL, the policy is supervised-fine-tuned on teacher-generated, skill-augmented trajectories so it learns to <b>retrieve and apply</b> skills. This SFT model becomes a <b>reference policy</b> for KL regularization during RL, stabilizing training. RL uses GRPO with clipped objectives and normalized advantages; the key idea is to optimize actions while keeping the policy close to skill-aware behavior learned during SFT.</span>
+            </div>
+
+            <!-- Follow-up question -->
+            <div class="follow-up-question">
+                <span class="question-indicator">[⏐]</span><span class="question-text"> why are we using GRPO and not other RL algorithms</span>
+            </div>
+
+            <!-- Agent's inline answer -->
+            <div class="agent-answer">
+                <p>GRPO is a practical fit here because the objective is <b>sequence-level, sparse-reward</b> RL with a need for <b>stable updates</b> around a strong reference policy. GRPO (like PPO-style methods) gives a clipped objective plus explicit KL control, which makes it easier to preserve the skill-aware behavior learned in SFT while still improving task success. That stability matters when the policy input includes retrieved skills and the reward signal is binary.</p>
+                <p>The paper does not claim GRPO is uniquely required; it is a <b>reasonable, well-understood choice</b> for LLM-policy RL and provides a clean baseline to isolate the impact of skill distillation and recursive evolution. Other algorithms (e.g., PPO variants, DPO-style offline methods, or actor-critic approaches) could likely be swapped in, but would introduce extra variables or require different reward formulations. The core contribution is the <b>skill-augmented loop</b>, not a new RL objective.</p>
+            </div>
+
+            <!-- Item 4 -->
+            <div class="numbered-item">
+                <span class="item-number">4)</span> <span class="item-label">Recursive evolution.</span> <span class="item-text">Every few epochs (e.g., every 5), validation failures are sampled and analyzed by the teacher to add or refine skills. Categories with low accuracy get more attention, but growth is capped per checkpoint to avoid explosion. The skill bank grows from 55 initial skills (12 general + 43 task-specific) to ~100 skills by later training, and the updated library feeds back into subsequent RL updates.</span>
+            </div>
+
+            <!-- Collapsed foldable section -->
+            <div class="foldable">
+                <span class="fold-indicator">[+]</span><span class="fold-summary"> Concrete example for all four steps</span>
+            </div>
+        </div>
+
+        <!-- Bottom Footer Bar -->
+        <div class="terminal-footer">
+            <span class="shortcut"><span class="key">hjkl</span>: move</span>
+            <span class="shortcut"><span class="sep">|</span></span>
+            <span class="shortcut"><span class="key">n/p</span>: section</span>
+            <span class="shortcut"><span class="sep">|</span></span>
+            <span class="shortcut"><span class="key">Space</span>: collapse/expand</span>
+            <span class="shortcut"><span class="sep">|</span></span>
+            <span class="shortcut"><span class="key">[]</span>: jump</span>
+            <span class="shortcut"><span class="sep">|</span></span>
+            <span class="shortcut"><span class="key">v</span>: select</span>
+            <span class="shortcut"><span class="sep">|</span></span>
+            <span class="shortcut"><span class="key">gx</span>: open link</span>
+            <span class="shortcut"><span class="sep">|</span></span>
+            <span class="shortcut"><span class="key">Tab</span>: ask</span>
+            <span class="shortcut"><span class="sep">|</span></span>
+            <span class="shortcut"><span class="key">q</span>: done</span>
+        </div>
+    </div>
+    <script>
+        window.addEventListener('load', function() {
+            var h = document.documentElement.scrollHeight;
+            window.parent.postMessage({ type: 'iframe-resize', height: h, src: location.href }, '*');
+        });
+    </script>
+</body>
+</html>
