@@ -115,6 +115,15 @@
             border-radius: 3px;
         }
 
+        .content video {
+            margin: 2.5rem 0 3rem;
+            width: 100%;
+            border-radius: 6px;
+            border: 1px solid rgba(28, 25, 23, 0.15);
+            box-shadow: 0 4px 24px rgba(28, 25, 23, 0.12);
+            display: block;
+        }
+
         .content figure {
             margin: 2.5rem 0 3rem;
             width: 95vw;
@@ -172,6 +181,7 @@
 
         @media (max-width: 600px) {
             .container { padding: 5vh 20px 10vh; }
+            .content video { border-radius: 0; }
             .content figure { width: 100vw; }
             .content figure img { border-radius: 0; }
         }
@@ -198,6 +208,8 @@
             <p>The more questions you ask, the more scattered things get. That's exactly backwards &mdash; follow-ups should make things clearer, not harder to find.</p>
 
             <p>We ran into this building an AI research agent. The agent reads papers, does synthesis, comparative analysis &mdash; stuff that produces long, structured output. We tried chat first because that's what everyone does. It didn't work. Not because the content was bad, but because chat is a conversation interface and the output was a document.</p>
+
+            <video autoplay loop muted playsinline src="ai-output-chat/ata-demo.mp4"></video>
 
             <figure class="terminal-embed">
                 <iframe src="ai-output-chat/reading-view-1.html" scrolling="no" title="Reading view showing a paper synthesis with navigable sections"></iframe>
