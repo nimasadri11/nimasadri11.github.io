@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Input — Speech to Prompt</title>
+    <style>
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            background: #0a0e14;
+        }
+
+        .terminal {
+            background: #0d1117;
+            color: #c9d1d9;
+            font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', Menlo, Consolas, 'Liberation Mono', monospace;
+            font-size: 13px;
+            line-height: 1.55;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- Typed version (dim, crossed out feel) --- */
+        .typed-version {
+            padding: 10px 16px;
+            border-bottom: 1px solid #21262d;
+            display: flex;
+            align-items: center;
+        }
+
+        .typed-label {
+            color: #484f58;
+            font-size: 11px;
+            margin-right: 10px;
+            white-space: nowrap;
+        }
+
+        .typed-text {
+            color: #6e7681;
+            font-size: 13px;
+        }
+
+        /* --- Voice prompt area --- */
+        .voice-prompt {
+            padding: 14px 16px;
+            border-bottom: 1px solid #21262d;
+            min-height: 80px;
+        }
+
+        .voice-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .voice-badge {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11px;
+            color: #3fb950;
+        }
+
+        .mic-icon {
+            width: 12px;
+            height: 12px;
+        }
+
+        .voice-waves-inline {
+            display: flex;
+            align-items: center;
+            gap: 1.5px;
+            height: 10px;
+        }
+
+        .voice-waves-inline .bar {
+            width: 2px;
+            background: #3fb950;
+            border-radius: 1px;
+            animation: wave 0.8s ease-in-out infinite;
+        }
+
+        .voice-waves-inline .bar:nth-child(1) { height: 3px; animation-delay: 0s; }
+        .voice-waves-inline .bar:nth-child(2) { height: 6px; animation-delay: 0.1s; }
+        .voice-waves-inline .bar:nth-child(3) { height: 9px; animation-delay: 0.2s; }
+        .voice-waves-inline .bar:nth-child(4) { height: 5px; animation-delay: 0.3s; }
+        .voice-waves-inline .bar:nth-child(5) { height: 7px; animation-delay: 0.15s; }
+
+        @keyframes wave {
+            0%, 100% { transform: scaleY(1); }
+            50% { transform: scaleY(0.3); }
+        }
+
+        .transcription {
+            color: #e6edf3;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .transcription .word {
+            transition: none;
+        }
+
+        .transcription .word.visible {
+            color: #e6edf3;
+        }
+
+        .transcription .word.hidden {
+            color: #0d1117;
+        }
+
+        .transcription .word.current {
+            color: #e6edf3;
+        }
+
+
+        /* --- Hold Space hint --- */
+        .hold-hint {
+            padding: 6px 16px 10px;
+            font-size: 11px;
+            color: #484f58;
+        }
+
+        .hold-hint .key {
+            color: #6e7681;
+            font-weight: 600;
+        }
+
+        /* --- Footer --- */
+        .terminal-footer {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 6px 16px;
+            background: #0d1117;
+            border-top: 1px solid #21262d;
+            min-height: 28px;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .terminal-footer .shortcut {
+            color: #6e7681;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .terminal-footer .shortcut .key {
+            color: #8b949e;
+            font-weight: 600;
+        }
+
+        .terminal-footer .shortcut .sep {
+            color: #30363d;
+            margin: 0 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="terminal">
+        <!-- Voice input -->
+        <div class="voice-prompt">
+            <div class="voice-label">
+                <div class="voice-waves-inline" id="waves">
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                </div>
+                <span style="color: #3fb950; font-size: 11px;">Recording</span>
+            </div>
+            <div class="transcription" id="transcription"></div>
+        </div>
+
+        <!-- Footer -->
+        <div class="terminal-footer">
+            <span class="shortcut"><span class="key">Space</span>: hold to talk</span>
+            <span class="shortcut"><span class="sep">|</span></span>
+            <span class="shortcut"><span class="key">Enter</span>: send</span>
+        </div>
+    </div>
+
+    <script>
+        var sentence = "I think this is related to the token refresh changes we made last week, the reconnect fires before the new token comes back and I only see it fail after expiry, not on cold start.";
+        var words = sentence.split(/(\s+)/);
+        var container = document.getElementById('transcription');
+        var wordSpans = [];
+
+        // Build all word spans, hidden initially
+        for (var i = 0; i < words.length; i++) {
+            var span = document.createElement('span');
+            span.textContent = words[i];
+            if (words[i].trim().length > 0) {
+                span.className = 'word hidden';
+                wordSpans.push(span);
+            } else {
+                span.className = 'word hidden';
+                // space spans track with previous word
+            }
+            container.appendChild(span);
+        }
+
+
+        var allSpans = container.querySelectorAll('.word');
+        var currentIdx = 0;
+        var totalSpans = allSpans.length;
+        var pauseBeforeRestart = 3000;
+
+        function countSyllables(word) {
+            var clean = word.replace(/[^a-zA-Z]/g, '').toLowerCase();
+            if (clean.length <= 2) return 1;
+            var matches = clean.match(/[aeiouy]+/g);
+            var count = matches ? matches.length : 1;
+            if (/e$/.test(clean) && count > 1) count--;
+            return Math.max(1, count);
+        }
+
+        function getDelay(text) {
+            var clean = text.trim();
+            if (clean.length === 0) return 0;
+            var syllables = countSyllables(clean);
+            var delay = syllables * 105;
+            if (/[.!?]$/.test(clean)) delay += 200;
+            else if (/[,;:]$/.test(clean)) delay += 100;
+            return delay;
+        }
+
+        function revealNext() {
+            if (currentIdx < totalSpans) {
+                allSpans[currentIdx].className = 'word visible';
+                var delay = getDelay(allSpans[currentIdx].textContent);
+                currentIdx++;
+                setTimeout(revealNext, delay);
+            } else {
+                // All revealed, pause then restart
+                setTimeout(function() {
+                    currentIdx = 0;
+                    for (var i = 0; i < totalSpans; i++) {
+                        allSpans[i].className = 'word hidden';
+                    }
+                    setTimeout(revealNext, 800);
+                }, pauseBeforeRestart);
+            }
+        }
+
+        setTimeout(revealNext, 1000);
+
+        // Resize for iframe embedding — use terminal's actual height, not scrollHeight
+        var terminal = document.querySelector('.terminal');
+        function sendHeight() {
+            var h = terminal.getBoundingClientRect().height;
+            window.parent.postMessage({ type: 'iframe-resize', height: Math.ceil(h), src: location.href }, '*');
+        }
+        window.addEventListener('load', sendHeight);
+        window.addEventListener('resize', sendHeight);
+    </script>
+</body>
+</html>

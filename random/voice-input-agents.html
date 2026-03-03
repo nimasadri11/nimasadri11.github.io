@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Can Make Coding Agents Better (In Some Cases!) — Nima Sadri</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <script>
+        window.addEventListener('message', function(e) {
+            if (e.data && e.data.type === 'iframe-resize') {
+                document.querySelectorAll('.terminal-embed iframe').forEach(function(iframe) {
+                    if (iframe.contentWindow === e.source) {
+                        iframe.style.height = e.data.height + 'px';
+                    }
+                });
+            }
+        });
+    </script>
+    <style>
+        :root {
+            --bg: #F6F1EB;
+            --text: #1C1917;
+            --text-muted: #78716C;
+            --text-light: #A8A29E;
+            --divider: #DDD5CA;
+            --accent: #B05030;
+        }
+
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Crimson Text', Georgia, 'Times New Roman', serif;
+            font-size: 18px;
+            line-height: 1.75;
+            min-height: 100vh;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            opacity: 0.35;
+            pointer-events: none;
+            z-index: 999;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+            background-size: 256px 256px;
+        }
+
+        .container { max-width: 700px; margin: 0 auto; padding: 7vh 28px 14vh; }
+
+        .back-link {
+            display: inline-flex; align-items: center; gap: 8px;
+            font-family: 'Crimson Text', serif; font-size: 0.9rem;
+            color: var(--text-muted); text-decoration: none; margin-bottom: 6vh;
+            transition: color 0.3s ease;
+        }
+        .back-link:hover { color: var(--text); }
+        .back-link svg { width: 15px; height: 15px; transition: transform 0.3s ease; }
+        .back-link:hover svg { transform: translateX(-3px); }
+
+        .article-header { margin-bottom: 4rem; animation: fadeUp 0.7s ease-out both; }
+
+        .title {
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-weight: 600; font-size: clamp(2.2rem, 5vw, 3rem);
+            line-height: 1.15; letter-spacing: -0.02em; margin-bottom: 1.5rem;
+        }
+
+        .subtitle { font-size: 1rem; color: var(--text-muted); font-style: italic; }
+        .subtitle a { color: var(--accent); text-decoration-color: rgba(176, 80, 48, 0.3); transition: text-decoration-color 0.3s; }
+        .subtitle a:hover { text-decoration-color: var(--accent); }
+
+        .divider { width: 60px; height: 1px; background: var(--divider); margin: 2rem 0; }
+
+        .content { animation: fadeUp 0.6s ease-out 0.15s both; }
+        .content p { margin-bottom: 1.4rem; }
+
+        .content h2 {
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-weight: 600;
+            font-size: 1.8rem;
+            margin-top: 3.5rem;
+            margin-bottom: 1.5rem;
+            color: var(--text);
+            letter-spacing: -0.01em;
+        }
+
+        .content h2:first-child {
+            margin-top: 0;
+        }
+
+        .content strong {
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .content a {
+            color: var(--accent);
+            text-decoration-color: rgba(176, 80, 48, 0.3);
+            transition: text-decoration-color 0.3s;
+        }
+        .content a:hover { text-decoration-color: var(--accent); }
+
+        .content code {
+            font-family: 'SFMono-Regular', Menlo, Consolas, monospace;
+            font-size: 0.85em;
+            background: rgba(176, 80, 48, 0.1);
+            color: var(--accent);
+            padding: 0.15em 0.4em;
+            border-radius: 3px;
+        }
+
+        .content video {
+            margin: 2.5rem 0 3rem;
+            width: 100%;
+            border-radius: 6px;
+            border: 1px solid rgba(28, 25, 23, 0.15);
+            box-shadow: 0 4px 24px rgba(28, 25, 23, 0.12);
+            display: block;
+        }
+
+        .content figure {
+            margin: 2.5rem 0 3rem;
+            width: 95vw;
+            max-width: 1200px;
+            position: relative;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .content figure img {
+            width: 100%;
+            border-radius: 6px;
+            border: 1px solid rgba(28, 25, 23, 0.15);
+            box-shadow: 0 4px 24px rgba(28, 25, 23, 0.12);
+        }
+
+        .content figure.terminal-embed {
+            width: 100%;
+            max-width: 700px;
+            left: auto;
+            transform: none;
+            position: static;
+        }
+
+        .content figure.terminal-embed iframe {
+            width: 100%;
+            border: none;
+            border-radius: 6px;
+            box-shadow: 0 4px 24px rgba(28, 25, 23, 0.12);
+            background: #0d1117;
+            display: block;
+            overflow: hidden;
+        }
+
+        .content figure figcaption {
+            font-size: 0.82rem;
+            color: var(--text-light);
+            font-style: italic;
+            margin-top: 0.6rem;
+            text-align: center;
+        }
+
+        .page-footer {
+            margin-top: 8vh; padding-top: 2rem; border-top: 1px solid var(--divider);
+            font-family: 'Cormorant Garamond', serif; font-size: 0.85rem;
+            color: var(--text-light); display: flex; justify-content: space-between;
+        }
+        .page-footer a { color: var(--text-muted); text-decoration: none; transition: color 0.3s; }
+        .page-footer a:hover { color: var(--text); }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 600px) {
+            .container { padding: 5vh 20px 10vh; }
+            .content video { border-radius: 0; }
+            .content figure { width: 100vw; }
+            .content figure img { border-radius: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="./" class="back-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            All Writings
+        </a>
+
+        <header class="article-header">
+            <h1 class="title">Voice Can Make Coding Agents Better (In Some Cases!)</h1>
+            <p class="subtitle">Building <a href="https://agents2agents.ai/ata">ata</a>, an open-source AI research agent</p>
+            <div class="divider"></div>
+        </header>
+
+        <div class="content">
+            <p>A few days ago I added voice input and output to the coding agent I use daily. I expected it to be a convenience thing. What actually happened is that the agent started giving better results. Same model, same prompts, same tools. The only thing I changed was that I was talking instead of typing.</p>
+
+            <p>Let me explain what I mean by that. As the agents have been getting more autonomous over the past few months, the way I interact with them changed too. I'm not giving them step-by-step instructions anymore. Most of the time I'm trying to explain what I'm thinking, like my mental model of the problem. Over the weekend, I was debugging a websocket reconnection issue, and what I actually wanted to say was "I think this is related to the token refresh changes we made last week, the reconnect fires before the new token comes back and I only see it fail after expiry, not on cold start." This was what I was thinking, but I didn't type all of that. I just wrote "fix the reconnect logic in ws_client" and moved on. When you type, you trim everything down. It's automatic.</p>
+
+            <figure class="terminal-embed">
+                <iframe src="voice-input-agents/voice-input.html" scrolling="no" title="Voice input transcribing a detailed prompt"></iframe>
+                <figcaption>Typed: 7 words. Spoken: the full thought.</figcaption>
+            </figure>
+
+            <p>With voice I held Space and said the whole thing. Everything I was thinking. The agent picked up on the token refresh timing and found the race condition on its own. If I had typed my usual five-word version it would've just looked at the reconnect function in isolation and missed the connection, or maybe it would fix it but it would either take too long or it would not find the root cause.</p>
+
+            <p>There's actually research on why this happens. When you type you're simultaneously planning what to say, doing the motor actions, watching for typos, editing as you go. <a href="https://pubmed.ncbi.nlm.nih.gov/11430147/">Kellogg's work</a> at Saint Louis University shows these compete for the same working memory resources. Speaking doesn't have that problem because the motor part is basically automatic by adulthood, so all your working memory goes into the actual thinking. <a href="https://doi.org/10.1016/j.learninstruc.2025.102250">A study</a> on spoken vs written learning journals found that spoken entries were about four times longer than written ones, and the extra length wasn't filler. People naturally include more of their reasoning instead of trimming it down. When I type a prompt I'm compressing. When I talk I'm thinking out loud.</p>
+
+            <p>It's the same pattern with research too. I use the agent to go through papers and technical docs pretty often, and the follow-up is where voice helps most. I'll hold Space and say something like "ok the first paper's approach seems way more practical but I think we could combine it with the caching strategy from the third one, can you sketch out what that would look like in our codebase?" That's maybe 40 words of context I would never type out. But saying it takes five seconds.</p>
+
+            <p>There are limits though. There's <a href="https://psycnet.apa.org/record/1993-36184-001">evidence</a> that forced verbalization can hurt performance on insight problems, the kind where you need to sit with something and let the answer come to you. Voice helps most with analytic, structured work where more context is better. For the "stare at the ceiling" moments, I just type instead. I hold Space when I want to talk, or I type normally. Both work in the same session, no mode switching.</p>
+
+            <p>I added voice output too. Initially the agent just spoke while the text sat there on screen, and I caught myself zoning out immediately. So I changed it. Now the words highlight one by one as the agent speaks, synced with the audio. This way I actually follow along. There's a <a href="https://www.isca-archive.org/slate_2015/gerbier15_slate.pdf">study from 2015</a> that tested exactly this kind of karaoke-style highlighting and found it improved semantic memory by about 11 percentage points. The key finding is that pacing and synchronization matter more than just "adding audio." I can also interrupt mid-sentence by holding Space while it's talking. It stops, I start talking. Without that it feels like listening to a technical voicemail : )</p>
+
+            <figure class="terminal-embed">
+                <iframe src="voice-input-agents/karaoke-voice.html" scrolling="no" title="Voice output with karaoke-style word highlighting"></iframe>
+                <figcaption>Words highlight one by one as the agent speaks, synced with the audio</figcaption>
+            </figure>
+
+            <p>I think for coding agents, interface design might matter as much as model choice. How much of your thinking actually makes it into the prompt depends a lot on the interface. We just wanted to make it easier for people to say what they're actually thinking.</p>
+
+            <p>The agent is called <code>ata</code>. It's open source, built on OpenAI's Codex CLI.</p>
+
+            <p><code>npm install -g @a2a-ai/ata</code></p>
+
+            <p><a href="https://github.com/Agents2AgentsAI/ata">github.com/Agents2AgentsAI/ata</a></p>
+        </div>
+
+        <footer class="page-footer">
+            <span>Nima Sadri</span>
+            <a href="./">Back to writings</a>
+        </footer>
+    </div>
+
+</body>
+</html>

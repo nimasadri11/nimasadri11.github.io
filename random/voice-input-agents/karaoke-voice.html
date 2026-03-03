@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Output — Karaoke Highlighting</title>
+    <style>
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            background: #0a0e14;
+        }
+
+        .terminal {
+            background: #0d1117;
+            color: #c9d1d9;
+            font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', Menlo, Consolas, 'Liberation Mono', monospace;
+            font-size: 13px;
+            line-height: 1.55;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- Prompt Bar --- */
+        .prompt-bar {
+            display: flex;
+            align-items: center;
+            padding: 7px 16px;
+            background: #1a2332;
+            border-bottom: 1px solid #21262d;
+        }
+
+        .prompt-caret {
+            color: #6e7681;
+            margin-right: 8px;
+            font-size: 12px;
+        }
+
+        .prompt-text {
+            color: #c9d1d9;
+            font-size: 13px;
+        }
+
+        /* --- Response Area --- */
+        .response-area {
+            padding: 14px 16px;
+            border-bottom: 1px solid #21262d;
+        }
+
+        .response-marker {
+            color: #6e7681;
+            margin-right: 6px;
+            font-size: 11px;
+            vertical-align: top;
+        }
+
+        .response-text {
+            color: #c9d1d9;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .response-text p {
+            margin-bottom: 10px;
+        }
+
+        .response-text p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* --- Karaoke word highlighting --- */
+        .word {
+            transition: none;
+        }
+
+        .word.spoken {
+            color: #e6edf3;
+        }
+
+        .word.active {
+            color: #ffffff;
+            text-decoration: underline;
+            text-decoration-color: #e6edf3;
+            text-underline-offset: 3px;
+        }
+
+        .word.unspoken {
+            color: #c9d1d9;
+        }
+
+        /* --- Voice indicator --- */
+        .voice-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 16px 10px;
+            font-size: 11px;
+            color: #6e7681;
+        }
+
+        .voice-waves {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            height: 12px;
+        }
+
+        .voice-wave-bar {
+            width: 2px;
+            background: #3fb950;
+            border-radius: 1px;
+            animation: wave 0.8s ease-in-out infinite;
+        }
+
+        .voice-wave-bar:nth-child(1) { height: 4px; animation-delay: 0s; }
+        .voice-wave-bar:nth-child(2) { height: 8px; animation-delay: 0.1s; }
+        .voice-wave-bar:nth-child(3) { height: 12px; animation-delay: 0.2s; }
+        .voice-wave-bar:nth-child(4) { height: 6px; animation-delay: 0.3s; }
+        .voice-wave-bar:nth-child(5) { height: 10px; animation-delay: 0.15s; }
+
+        @keyframes wave {
+            0%, 100% { transform: scaleY(1); }
+            50% { transform: scaleY(0.4); }
+        }
+
+        /* --- Status Bar --- */
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 16px;
+            background: #161b22;
+            border-top: 1px solid #21262d;
+            min-height: 24px;
+            font-size: 12px;
+        }
+
+        .status-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-badge {
+            background: #238636;
+            color: #ffffff;
+            padding: 1px 6px;
+            border-radius: 2px;
+            font-weight: 700;
+            font-size: 11px;
+        }
+
+        .status-label {
+            color: #6e7681;
+            font-size: 11px;
+        }
+
+        .status-right {
+            color: #484f58;
+            display: flex;
+            gap: 16px;
+            font-size: 11px;
+        }
+
+        /* --- Footer --- */
+        .terminal-footer {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 6px 16px;
+            background: #0d1117;
+            border-top: 1px solid #21262d;
+            min-height: 28px;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .terminal-footer .shortcut {
+            color: #6e7681;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .terminal-footer .shortcut .key {
+            color: #8b949e;
+            font-weight: 600;
+        }
+
+        .terminal-footer .shortcut .sep {
+            color: #30363d;
+            margin: 0 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="terminal">
+        <!-- User prompt -->
+        <div class="prompt-bar">
+            <span class="prompt-caret">&#9655;</span>
+            <span class="prompt-text">explain how recursive language model works</span>
+        </div>
+
+        <!-- Response: karaoke animation -->
+        <div class="response-area" id="karaoke-response">
+            <span class="response-marker" style="color: #d2a8ff;">&#9670;</span>
+            <span class="response-text" id="karaoke-text"></span>
+        </div>
+
+        <!-- Voice indicator -->
+        <div class="voice-indicator" id="voice-indicator">
+            <div class="voice-waves">
+                <div class="voice-wave-bar"></div>
+                <div class="voice-wave-bar"></div>
+                <div class="voice-wave-bar"></div>
+                <div class="voice-wave-bar"></div>
+                <div class="voice-wave-bar"></div>
+            </div>
+            <span>Speaking...</span>
+        </div>
+
+        <!-- Footer -->
+        <div class="terminal-footer">
+            <span class="shortcut"><span class="key">Space</span>: interrupt</span>
+            <span class="shortcut"><span class="sep">|</span></span>
+            <span class="shortcut"><span class="key">Esc</span>: stop</span>
+        </div>
+    </div>
+
+    <script>
+        var sentence = "A recursive language model is a model that can call itself, or a smaller copy of itself, to solve parts of a problem before producing a final answer. Think of it like breaking a hard task into sub-tasks, solving each one, then combining the results. In practice, recursion can happen in a few ways. One pattern is hierarchical generation: the model first makes a high-level plan, then recursively expands each step into more detail. Another is tree search: it explores multiple candidate reasoning paths, recursively evaluates them, and picks the best one. A third is tool-style self-calls, where the model spawns sub-queries to itself for verification, decomposition, or refinement.";
+        var words = sentence.split(/(\s+)/);
+        var container = document.getElementById('karaoke-text');
+        var spans = [];
+
+        // Build word spans
+        for (var i = 0; i < words.length; i++) {
+            var span = document.createElement('span');
+            span.textContent = words[i];
+            if (words[i].trim().length > 0) {
+                span.className = 'word unspoken';
+                spans.push(span);
+            }
+            container.appendChild(span);
+        }
+
+        var currentWord = 0;
+        var pauseBeforeRestart = 2500;
+
+        // ~60ms per syllable approximation: count vowel clusters
+        function countSyllables(word) {
+            var clean = word.replace(/[^a-zA-Z]/g, '').toLowerCase();
+            if (clean.length <= 2) return 1;
+            // count vowel groups
+            var matches = clean.match(/[aeiouy]+/g);
+            var count = matches ? matches.length : 1;
+            // silent e
+            if (/e$/.test(clean) && count > 1) count--;
+            return Math.max(1, count);
+        }
+
+        function getDelay(word) {
+            var syllables = countSyllables(word);
+            var delay = syllables * 95; // ~95ms per syllable (natural speech ~150ms but sped up for demo)
+            // pause after sentence-ending punctuation
+            if (/[.!?]$/.test(word)) delay += 180;
+            // smaller pause after commas, colons, semicolons
+            else if (/[,;:]$/.test(word)) delay += 90;
+            return delay;
+        }
+
+        function animateKaraoke() {
+            if (currentWord > 0 && currentWord <= spans.length) {
+                spans[currentWord - 1].className = 'word spoken';
+            }
+
+            if (currentWord < spans.length) {
+                spans[currentWord].className = 'word active';
+                var delay = getDelay(spans[currentWord].textContent);
+                currentWord++;
+                setTimeout(animateKaraoke, delay);
+            } else {
+                // All done, pause then restart
+                setTimeout(function() {
+                    currentWord = 0;
+                    for (var i = 0; i < spans.length; i++) {
+                        spans[i].className = 'word unspoken';
+                    }
+                    setTimeout(animateKaraoke, 600);
+                }, pauseBeforeRestart);
+            }
+        }
+
+        // Start after a brief delay
+        setTimeout(animateKaraoke, 800);
+
+        // Resize for iframe embedding — use terminal's actual height, not scrollHeight
+        var terminal = document.querySelector('.terminal');
+        function sendHeight() {
+            var h = terminal.getBoundingClientRect().height;
+            window.parent.postMessage({ type: 'iframe-resize', height: Math.ceil(h), src: location.href }, '*');
+        }
+        window.addEventListener('load', sendHeight);
+        window.addEventListener('resize', sendHeight);
+    </script>
+</body>
+</html>
