@@ -14,8 +14,8 @@
   --accent-claude: #B05030;
   --accent-verdict: #5A7F60;
   --accent-deepdive: #78716C;
-  --reading-width: 700px;
-  --code-width: min(900px, 92vw);
+  --reading-width: 820px;
+  --code-width: min(1100px, 92vw);
   --font-body: 'Crimson Text', Georgia, 'Times New Roman', serif;
   --font-heading: 'Cormorant Garamond', Georgia, serif;
   --font-code: 'SFMono-Regular', Menlo, Consolas, monospace;
