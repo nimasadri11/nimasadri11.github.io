@@ -18,17 +18,26 @@ Both systems inject a similar set of things into the context before the first tu
 <CodeComparison client:visible
   codex={`# Codex: two message groups
 developer_message = {
-    "model_instructions":   "You are Codex...",
-    "permission_policy":    sandbox_rules,
-    "memory_summary":       load("memory_summary.md")[:5000],
-    "collaboration_mode":   "Plan | Execute | Default",
-    "personality":          "Friendly | Pragmatic | None",
-    "skill_summaries":      loaded_skills,
-    "plugin_summaries":     loaded_plugins,
+    "model_instructions":
+        "You are Codex...",
+    "permission_policy":
+        sandbox_rules,
+    "memory_summary":
+        load("memory_summary.md")[:5000],
+    "collaboration_mode":
+        "Plan | Execute | Default",
+    "personality":
+        "Friendly | Pragmatic | None",
+    "skill_summaries":
+        loaded_skills,
+    "plugin_summaries":
+        loaded_plugins,
 }
 user_message = {
-    "agents_md":            walk_agents_md(root, cwd),
-    "env":                  {cwd, shell, date, tz, network},
+    "agents_md":
+        walk_agents_md(root, cwd),
+    "env":
+        {cwd, shell, date, tz, network},
 }`}
   claude={`# Claude Code: system prompt + user message
 system_prompt = [
@@ -58,7 +67,7 @@ Both systems avoid re-sending the full context from scratch on every turn. They 
 
 **Codex** maintains a reference snapshot of the previous turn's context. Before each new turn, it diffs the current state against the snapshot. If the model switched, new model-specific instructions are injected. If the sandbox or approval policy changed, new permission instructions are injected. If CWD, timezone, or network config changed, a new environment context block is injected. If nothing changed, nothing is injected. After compaction clears the history, the reference snapshot resets and the next turn does a full re-injection.
 
-**Claude Code** re-sends the full user context on every turn (it's memoized, so it doesn't recompute), but injects deltas for specific changes as `<system-reminder>` messages: new MCP servers, new agents, newly discovered deferred tools, and file attachment results. The session memory subagent (covered in Chapter 6) also writes running notes to a markdown file during the session; these survive context compaction.
+**Claude Code** re-sends the full user context on every turn (it's memoized, so it doesn't recompute), but injects deltas for specific changes as `<system-reminder>` messages. These system reminders carry several types of updates: newly connected MCP servers and their tool instructions, newly spawned agents and their status, deferred tools that have been discovered via ToolSearch (their full schemas get injected so the model can call them), file attachment results, git status snapshots, CLAUDE.md content from project files, the current date, and stale-task nudges (gentle reminders to use task tracking if the model hasn't used it recently). The session memory subagent (covered in Chapter 6) also writes running notes to a markdown file during the session; these survive context compaction.
 
 <CodeComparison client:visible
   codex={`// Codex: diff-based per-turn injection

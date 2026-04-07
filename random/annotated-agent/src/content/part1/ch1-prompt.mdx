@@ -103,9 +103,9 @@ There's a practical argument for Claude Code's approach: every tool boundary is 
 
 Counting tools is one thing. Looking at how they work reveals more about each team's priorities.
 
-**File editing: string replacement vs custom patch format.** Claude Code's file edit tool uses string replacement. The model provides the old text and the new text; the tool finds and replaces. Three safety mechanisms protect this: (1) the model must read the file before it can edit (checked via a file-state map with timestamps), (2) if the file changed since the last read (by a linter, a user, or another agent), the edit is rejected, (3) if the old string matches multiple locations, the edit is rejected until the model provides enough context to be unambiguous. There's also a curly-quote normalizer that handles tokenizer quirks: Claude sometimes outputs curly quotes when the file uses straight quotes, so the tool matches both and preserves the original style.
+**File editing: string replacement vs custom patch format.** Claude Code's file edit tool uses string replacement. The model provides the old text and the new text; the tool finds and replaces. Three safety mechanisms protect this: (1) the model must read the file before it can edit (checked via a file-state map with timestamps), (2) if the file changed since the last read (by a linter, a user, or another agent), the edit is rejected, (3) if the old string matches multiple locations, the edit is rejected until the model provides enough context to be unambiguous. There's also a curly-quote normalizer that handles tokenizer quirks: Claude sometimes outputs curly quotes (`\u201C` `\u201D` instead of `"`) when the file uses straight quotes, so the tool matches both and preserves the original style.
 
-Codex designed a custom patch format specifically for LLM output. The format wraps file operations in `*** Begin Patch` / `*** End Patch` markers. Three operations: `*** Add File`, `*** Delete File`, and `*** Update File` (with optional `*** Move to` for renames). Within an update, `@@` markers provide context-based positioning: a line from the file (usually a class or function signature) narrows down where the change goes. The model writes 3 lines of context above and below each change so the tool can locate the exact position. If 3 lines aren't unique enough, the model can stack multiple `@@` markers:
+Codex designed a custom patch format specifically for LLM output. This is not a git unified diff. Git patches use `---`/`+++` headers and `@@` hunk markers with line numbers. Codex's format uses `***` markers and context-based positioning without line numbers, because LLMs are bad at counting lines but good at recognizing surrounding code. The format wraps file operations in `*** Begin Patch` / `*** End Patch` markers. Three operations: `*** Add File`, `*** Delete File`, and `*** Update File` (with optional `*** Move to` for renames). Within an update, `@@` markers provide context-based positioning: a line from the file (usually a class or function signature) narrows down where the change goes. The model writes 3 lines of context above and below each change so the tool can locate the exact position. If 3 lines aren't unique enough, the model can stack multiple `@@` markers:
 
 <CodeBlock client:visible language="text" code={`*** Update File: src/app.py
 @@ class BaseClass
@@ -121,7 +121,7 @@ Codex designed a custom patch format specifically for LLM output. The format wra
 
 The positioning algorithm (`seek_sequence`) tries four passes with decreasing strictness: exact match, then ignoring trailing whitespace, then ignoring all whitespace, then normalizing Unicode punctuation (curly quotes to straight, typographic dashes to hyphens, non-breaking spaces to regular). This handles the same tokenizer-vs-source mismatch that Claude Code solves with its curly-quote normalizer, but at the positioning level instead of the replacement level.
 
-The parser is deliberately lenient. GPT-4.1 wraps patches in heredoc syntax (`<<'EOF'...EOF`) that the execution layer doesn't interpret as a shell heredoc (because it uses `execvpe`, not bash). Lenient mode strips these markers. When the model runs a patch command, the execution layer intercepts it before it reaches the shell and applies it directly in Rust, so file edits never go through a shell process.
+The parser is deliberately lenient. The source code comments state: "Currently, the only OpenAI model that knowingly requires lenient parsing is gpt-4.1." GPT-4.1 wraps patches in heredoc syntax (`<<'EOF'...EOF`) because the model thinks it's writing a shell command, but the execution layer uses `execvpe` (direct process exec, not bash), so heredoc syntax is meaningless. Lenient mode detects and strips these markers before parsing the actual patch. When the model runs a patch command, the execution layer intercepts it before it reaches the shell and applies it directly in Rust, so file edits never go through a shell process.
 
 A single patch can add, delete, update, and rename files in one call. Claude Code's string replacement handles one edit per tool call. For a multi-file refactor, Codex sends one patch; Claude Code sends N separate edit calls.
 
@@ -129,13 +129,13 @@ A single patch can add, delete, update, and rename files in one call. Claude Cod
 
 Codex handles web access through its built-in web search tool (backed by the Responses API's server-side search) rather than a client-side fetch-and-process pipeline. The model gets search results as structured data, not raw HTML. This is a different tradeoff: no arbitrary URL fetching, but the web results come pre-processed by the API without consuming client-side tokens or requiring a second model.
 
-**Deferred tool loading.** When Claude Code has 50+ tools (especially from MCP servers), putting all their schemas in every prompt wastes tokens. The tool search mechanism solves this: rarely-used tools are "deferred" (hidden from the initial prompt). The model can search for tools by keyword and load their schemas on demand. The loaded schema arrives via a special API feature that expands the schema inline, so the model learns the tool's interface mid-conversation without a separate API call.
+**Deferred tool loading.** When Claude Code has 50+ tools (especially from MCP servers), putting all their schemas in every prompt wastes tokens. The tool search mechanism solves this: rarely-used tools are "deferred" (hidden from the initial prompt but listed by name in a system reminder). The model sees something like "The following deferred tools are available via ToolSearch: CronCreate, CronDelete, LSP, NotebookEdit..." When it needs one, it calls the `ToolSearch` tool with a query (e.g., `"select:LSP"` for exact match, or `"notebook jupyter"` for keyword search). The matched tool's full JSON schema is returned inside a `<functions>` block, making it callable for the rest of the conversation. Tools like Glob, Grep, Read, Edit, Bash, and Agent are always loaded. Tools like CronCreate, LSP, NotebookEdit, and MCP tools are deferred by default.
 
 **Shell execution: one-shot vs persistent sessions.** The two systems run shell commands differently.
 
-Claude Code runs each command as a one-shot subprocess. The model sends a command, the subprocess runs to completion, the output returns, and the process exits. Every command is independent. Running a REPL or a long-lived server requires `run_in_background` mode.
+Claude Code runs each command as a one-shot subprocess. The model sends a command, the subprocess runs to completion, the output returns, and the process exits. Every command is independent. Running a REPL or a long-lived server requires `run_in_background` mode, which spawns the process detached from the main loop. The model gets notified when the background command finishes, and can read its output later without blocking.
 
-Codex runs persistent PTY sessions. The model calls `exec_command` to start a process and gets back a session ID. It can then call `write_stdin` with that ID to send input to the running process and read incremental output. Up to 64 concurrent sessions, each with configurable yield times (how long to wait for output before returning to the model). This lets the model interact with REPLs, step through debuggers, and monitor long-running servers without starting a new process each time.
+Codex runs persistent PTY (pseudo-terminal) sessions. A PTY is a virtual terminal that lets a program interact with another program as if it were a human typing at a keyboard. The model calls `exec_command` to start a process and gets back a session ID. It can then call `write_stdin` with that ID to send input to the running process and read incremental output. Up to 64 concurrent sessions, each with configurable yield times (how long to wait for output before returning to the model). This lets the model interact with REPLs, step through debuggers, and monitor long-running servers without starting a new process each time.
 
 **Search: shell vs dedicated tools.** Codex routes all search through the shell tool. The model runs `grep`, `find`, `rg`, or whatever it wants. There are no dedicated search tools. The advantage is simplicity: no extra tool definitions, no extra prompt tokens. The disadvantage is that shell searches can't run in parallel with other shell commands (they all go through the same shell tool).
 
@@ -143,9 +143,9 @@ Claude Code splits search into two dedicated tools: Glob (filename patterns) and
 
 **Structured user input.** Both systems let the model ask the user structured questions instead of relying on free-text input.
 
-Claude Code's AskUserQuestion tool presents 1-4 questions, each with 2-4 options, optional descriptions per option, and optional previews (HTML or code snippets that render alongside the options). It supports multi-select and user annotations. The coordinator uses this to turn vague user intent into concrete decisions before fanning out work.
+Claude Code's `AskUserQuestion` tool presents 1-4 questions, each with 2-4 options, optional descriptions per option, and optional previews (HTML or code snippets that render alongside the options). It supports multi-select and user annotations. The coordinator uses this to turn vague user intent into concrete decisions before fanning out work.
 
-Codex's request_user_input tool is structurally similar: it sends a list of questions, each with an ID, header, question text, and optional multiple-choice options (label + description). It also supports secret inputs (`isSecret` flag for passwords/tokens) and free-text fallback (`isOther` flag). The tool is only available in Plan collaboration mode by default; a feature flag enables it in Default mode too.
+Codex's `request_user_input` tool is structurally similar: it sends a list of questions, each with an ID, header, question text, and optional multiple-choice options (label + description). It also supports secret inputs (the `isSecret` flag tells the UI to mask the input like a password field, so API keys and tokens aren't echoed to the terminal or logged) and free-text fallback (`isOther` flag). The tool is only available in Plan collaboration mode by default; a feature flag enables it in Default mode too.
 
 Both tools follow the same pattern: the tool call creates a UI prompt, the user's answers flow back as the tool result, and the model continues with structured input instead of parsing free text.
 
@@ -153,7 +153,7 @@ Both tools follow the same pattern: the tool call creates a UI prompt, the user'
 
 The Sleep tool is how a proactive agent idles between work. It's interruptible, costs no shell process, and the prompt warns the model that "each wake-up costs an API call, but the prompt cache expires after 5 minutes." This teaches the model to be cost-aware about its own inference: sleep too short and you waste money on empty wake-ups, sleep too long and the cache goes cold.
 
-The Brief tool is the structured output channel for assistant mode (KAIROS). Instead of streaming text to the terminal, the model calls Brief with a message and a status flag (normal or proactive). Proactive status triggers push notifications for unsolicited updates, so the agent can surface findings while the user is away from the terminal.
+The Brief tool is the structured output channel for assistant mode (KAIROS, discussed in Chapter 8). Instead of streaming text to the terminal, the model calls `Brief` with a message and a status flag (normal or proactive). Proactive status triggers push notifications for unsolicited updates, so the agent can surface findings while the user is away from the terminal.
 
 Codex has neither tool. It has a `prevent_idle_sleep` feature that keeps the computer awake while the agent is running (using OS-level power assertions on macOS/Linux/Windows), but no mechanism for the agent itself to idle and wake up on a schedule.
 
@@ -166,7 +166,7 @@ Codex caches by exact command. Each approved action is serialized and stored as 
 Claude Code caches by pattern rules. When a user approves an action, it becomes a permission rule that can use globs. A single rule like "allow all git commands" covers `git status`, `git diff`, and `git commit`. Rules persist across sessions in a settings file, or scope to the current session depending on the user's choice.
 
 <Verdict>
-  <p>Rules are more flexible. Start with exact-match caching and add patterns when users complain about repetitive prompts. Exact-match is safer for audit trails and security-critical environments. Patterns are better for daily interactive use. If you pick patterns, make sure users can see what they've granted. A glob that matches more than intended is an invisible hole in your security model.</p>
+  <p>Rules are more flexible. If you're building an agent, start with exact-match caching and add patterns when users complain about repetitive prompts. Exact-match is safer for audit trails and security-critical environments. Patterns are better for daily interactive use. If you use Claude Code, check your permission rules periodically (`~/.claude/settings.json`). A glob that matches more than intended is an invisible hole in your security model. If you use Codex, know that every approval is a one-time pass for that exact command.</p>
 </Verdict>
 
 ### Decision 4: Hooks
@@ -199,40 +199,44 @@ async for result in hook.execute(payload):
 />
 
 <Verdict>
-  <p>Shell-command hooks are the right starting point. They work with any language, can't crash the host process, and the exit-code protocol is dead simple. But input mutation and context injection (the async generator approach) solve real problems. A pre-tool-use hook that rewrites a file path or adds "also check the tests" to the model's context is more useful than one that can only say yes or no. Build the gatekeeper first, add the transformer when users ask.</p>
+  <p>Shell-command hooks are the right starting point. They work with any language, can't crash the host process, and the exit-code protocol is dead simple. But input mutation and context injection (the async generator approach) unlock things gatekeeping can't: a pre-tool-use hook that rewrites a file path or adds "also check the tests" to the model's context is more useful than one that can only say yes or no. If you use Claude Code, hooks are how you enforce team conventions automatically (e.g., blocking commits without tests, injecting style guides before code generation). If you use Codex, hooks can gate dangerous operations but can't modify what the model sees. Build the gatekeeper first, add the transformer when users ask.</p>
 </Verdict>
 
 ### Decision 5: Skills
 
-Skills are reusable behaviors. A user might define a `/deploy` skill that runs a specific deployment sequence, or a skill that adds testing guidelines whenever the agent works on test files. Both systems support skills but implement them differently.
+Skills are reusable behaviors. A user might define a deploy skill that runs a specific deployment sequence, or a skill that adds testing guidelines whenever the agent works on test files. Both systems support skills but implement them differently. In both systems, a skill is a directory with a required `SKILL.md` file (YAML frontmatter + markdown instructions), plus optional `scripts/`, `references/`, and `assets/` directories. Skills are not just markdown; they can include executable scripts that the agent runs as part of the skill.
 
-Codex skills are markdown files discovered from configurable root directories (user, repo, system). The system walks the skill roots at startup and parses each file's frontmatter for metadata (name, description). Skills are invoked two ways: explicitly when the user types `@skill-name` in their message (the text is scanned for skill references and matched against enabled skills), or implicitly when the model runs a command that matches a skill's trigger pattern (e.g., a deploy command matches a deploy skill). Either way, the skill's markdown content is injected into the conversation as a developer message. Skills can declare environment variable dependencies that get resolved interactively: if a skill needs a deploy token and it's not set, the system prompts the user. System skills ship embedded in the binary and get extracted to disk on first run.
+**Codex** discovers skills from configurable root directories (`~/.codex/skills/`, `.codex/skills/`). The system walks the skill roots at startup and parses each `SKILL.md`'s frontmatter for metadata (name, description). Skills are invoked two ways: explicitly when the user types `$skill-name` in their message (the `$` sigil triggers a lookup against enabled skills), or implicitly when the model runs a command that matches a skill's trigger pattern. Either way, the skill's content is injected into the conversation as a developer message. Skills can declare environment variable dependencies that get resolved interactively: if a skill needs a deploy token and it's not set, the system prompts the user. Five system skills ship embedded in the binary and get extracted to `~/.codex/skills/.system` on first run: `skill-creator` (guides making new skills), `skill-installer` (downloads curated skills), `imagegen`, `openai-docs`, and `plugin-creator`.
 
 Both systems watch skill directories for changes. You can add or edit a skill file while either tool is running and it picks up the change without restarting. Codex uses a 10-second throttled file watcher. Claude Code uses chokidar with a 300ms debounce, clears skill caches on change, and fires a ConfigChange hook so other systems know skills changed.
 
-Claude Code skills are invoked as tool calls. The model calls a Skill tool and the runtime loads the skill definition. Skills can be bundled (compiled into the binary), loaded from project directories, or provided by plugins. Each skill returns content blocks. Skills can specify allowed tools, model overrides, and whether they run inline or fork a sub-agent. The system tracks which skills have been invoked per session and per agent to avoid double-loading. MCP servers can also expose skills through MCP prompts, bridging the two extension mechanisms.
+**Claude Code** invokes skills as tool calls. The user types `/skill-name` (the `/` prefix triggers invocation), or the model calls the `Skill` tool and the runtime loads the skill definition. Skills can be bundled (compiled into the binary), loaded from project directories (`~/.claude/skills/`, `.claude/skills/`), or provided by plugins. Each skill returns content blocks. Skills can specify allowed tools, model overrides, and whether they run inline or fork a sub-agent. Five default skills ship with Claude Code: `/batch`, `/claude-api`, `/debug`, `/loop`, and `/simplify`. MCP servers can also expose skills through MCP prompts, bridging the two extension mechanisms.
 
 <CodeComparison client:visible
-  codex={`# Codex: markdown files, injected into prompt
-skill_files = walk(skill_roots)
-for skill in skill_files:
-    parse_frontmatter(skill)
+  codex={`# Codex: SKILL.md + scripts, injected into prompt
+# Invoked with $skill-name or auto-triggered
+skill_dirs = walk(skill_roots)
+for skill in skill_dirs:
+    parse_frontmatter(skill / "SKILL.md")
     if matches_trigger(user_input):
         system_prompt.append(skill.body)
-# File watcher reloads on change`}
+# 5 system skills: skill-creator, skill-installer,
+#   imagegen, openai-docs, plugin-creator`}
   claude={`# Claude Code: tool calls, on-demand loading
-# Model decides to invoke a skill
+# Invoked with /skill-name or model calls Skill tool
 model.call(Skill, name="deploy", args="prod")
 command = find_command("deploy")
 prompt = command.get_prompt(args)
 if command.context == "fork":
     run_as_sub_agent(prompt)
 else:
-    inject_inline(prompt)`}
+    inject_inline(prompt)
+# 5 default skills: batch, claude-api,
+#   debug, loop, simplify`}
 />
 
 <Verdict>
-  <p>Both systems use markdown files on disk for skill definitions, so skills live in version control, teams can PR them, and new hires find them by browsing a directory. The difference is in invocation. Codex has two triggers: the user explicitly mentions a skill with `@name`, or the model runs a command that matches a skill's trigger pattern. Either way, the skill content gets injected into the conversation. Claude Code invokes skills via tool calls: the model calls the Skill tool by name and the system loads the skill on demand. Codex's approach means skills activate automatically when relevant commands run. Claude Code's approach means the model must decide to use a skill, but it only pays the token cost when it does.</p>
+  <p>Both systems use `SKILL.md` files on disk for skill definitions (both follow the <a href="https://agentskills.io">Agent Skills</a> open standard), so skills live in version control, teams can PR them, and new hires find them by browsing a directory. Both support optional `scripts/` directories for executable code. The difference is invocation. Codex uses the `$` sigil: type `$deploy` to invoke. Claude Code uses `/`: type `/deploy`. Both also support auto-invocation when the model detects a task matching a skill's description. If you use either tool, check what skills are available. Claude Code: run `/help` to see built-in skills. Codex: look in `~/.codex/skills/`.</p>
 </Verdict>
 
 ### System Prompt Design
@@ -243,7 +247,7 @@ The system prompt is where personality meets policy. Both systems use it to shap
 
 **Codex explicitly fights AI slop.** "AI slop" is the tendency of LLMs to produce generic, safe, homogeneous output: purple-on-white color schemes, dark mode defaults, rounded-corner cards with gradient backgrounds, identical landing page layouts. The model gravitates toward what was most common in its training data, which produces output that looks like every other AI-generated design. Codex's system prompt says "avoid collapsing into AI slop or safe, average-looking layouts... Choose a clear visual direction; avoid purple-on-white defaults. No purple bias or dark mode bias." The team knows their model has these aesthetic biases and addresses them in the instructions rather than hoping fine-tuning solves it. Claude Code doesn't include anti-bias directives at the system prompt level.
 
-**Claude Code enforces code minimalism.** The system prompt says "Don't add features beyond what was asked. Don't add error handling for scenarios that can't happen. Three similar lines of code is better than a premature abstraction." For internal Anthropic users, there's an additional directive: "Default to writing no comments." This is unusual. Most coding tools encourage documentation. Claude Code's system prompt actively discourages speculative code.
+**Claude Code enforces code minimalism.** The system prompt says "Don't add features beyond what was asked. Don't add error handling for scenarios that can't happen. Three similar lines of code is better than a premature abstraction." For internal Anthropic users, the system prompt includes an additional directive: "Default to writing no comments." We know this because the prompt construction code has a branch that checks for internal user status and appends this instruction. This is unusual. Most coding tools encourage documentation. The Anthropic team apparently found that Claude over-comments by default, and their internal engineers preferred code that speaks for itself. Claude Code's system prompt actively discourages speculative code.
 
 <CodeComparison client:visible
   codex={`# Codex: personality-driven prompts
