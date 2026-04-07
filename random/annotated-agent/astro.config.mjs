@@ -3,6 +3,7 @@ import react from '@astrojs/react';
 import mdx from '@astrojs/mdx';
 
 export default defineConfig({
+  base: '/random/annotated-agent',
   integrations: [react(), mdx()],
   markdown: {
     shikiConfig: {
