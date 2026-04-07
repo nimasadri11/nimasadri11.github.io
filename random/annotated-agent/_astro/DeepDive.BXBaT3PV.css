@@ -88,9 +88,25 @@ article {
   font-size: 1.8rem;
   font-weight: 600;
   margin: 3.5rem 0 1.5rem;
-  padding-top: 2rem;
-  border-top: 1px solid var(--border);
+  padding-top: 2.5rem;
+  border-top: none;
   letter-spacing: -0.01em;
+  position: relative;
+}
+
+.prose h2::before {
+  content: '* \00a0\00a0 * \00a0\00a0 *';
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  font-family: var(--font-heading);
+  font-size: 1.2rem;
+  font-weight: 300;
+  color: var(--text-muted);
+  letter-spacing: 0.3em;
 }
 
 .prose h3 {
