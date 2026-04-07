@@ -1,0 +1,57 @@
+import CodeComparison from '../../components/CodeComparison.tsx';
+import Verdict from '../../components/Verdict.astro';
+import DeepDive from '../../components/DeepDive.astro';
+
+
+## Chapter 5: The Stream and Tool Executor
+
+> **The Stream.** The agent sends the prompt to the language model and receives a streaming response. Tokens arrive one at a time. Some tokens are text (shown to the user). Some are tool calls (parsed and executed). Streaming matters because tool calls can begin executing before the model finishes generating, saving significant time on multi-tool turns.
+
+> **The Tool Executor.** When the model requests a tool call, the executor parses it, validates it, and runs it. If multiple tool calls arrive in one response, safe ones (reads, searches) can run in parallel. Unsafe ones (writes, shell commands) run one at a time. Results are appended to the conversation for the next turn.
+
+The prompt is built. Both systems fire it at their respective APIs. Now they wait for tokens.
+
+### Decision 15: Streaming Tool Execution
+
+The naive approach waits for the full response, then executes tools sequentially. Both teams independently figured out you can start executing tools before the model finishes generating.
+
+Codex starts each tool call as a background task the moment it arrives. Claude Code adds a safety layer: each tool declares whether it's safe to run concurrently. Reads overlap. Writes get exclusive access.
+
+<CodeComparison client:visible
+  codex={`# Codex: fire and collect
+for event in stream:
+    if event.is_tool_call:
+        futures.add(execute(event))    # start immediately
+    if event.is_text:
+        display(event)                 # stream to terminal
+results = wait_all(futures)            # collect after stream ends`}
+  claude={`# Claude Code: concurrent reads, serial writes
+for event in stream:
+    if event.is_tool_call:
+        if tool.is_read_only:
+            run_concurrent(event)      # reads overlap safely
+        else:
+            run_serial(event)          # writes get exclusive access
+    if event.is_text:
+        display(event)
+# results emitted in request order`}
+/>
+
+<Verdict label="Our take">
+  <p>I think Claude Code's approach is the better design. If you think about it, this is the same problem as database read/write locks: readers can overlap, writers need exclusivity. One boolean per tool definition prevents a class of race conditions that sandboxing alone won't catch. Codex treats all tools equally and relies on its sandbox to limit blast radius. Add a concurrency-safe flag to each tool. It's a small change that pays off immediately.</p>
+</Verdict>
+
+### What the User Sees
+
+Streaming tokens is not just about execution speed. Both systems make decisions about what to show the user and how to show it.
+
+**Text vs tool calls.** As tokens arrive, text goes straight to the terminal. Tool calls are parsed and displayed differently. Both systems show the tool name and a summary of the input (e.g., "Reading src/auth.ts" or "Running npm test") before the tool executes. The user sees what the agent intends to do before it does it.
+
+**Verbose vs condensed.** Claude Code has a `verbose` toggle (Shift+V). In condensed mode, tool results are collapsed to one-line summaries. A file read shows just the filename and line count. A grep shows just the match count. In verbose mode, the full output is visible. Each tool implements its own `renderToolUseMessage` and `renderToolResultMessage` React components, so different tools can render differently. Some tools (like TodoWrite) render nothing in the transcript because their output appears in a separate panel.
+
+**Click-to-expand.** When a tool result is truncated in condensed mode, the user can click to expand it. The `isResultTruncated()` method on each tool determines whether the expand affordance appears. This means read-heavy operations (grep results, file contents) get collapsed by default while write operations (file edits, shell output) stay visible.
+
+**Permission prompts interrupt the stream.** When a tool call needs permission, both systems pause the stream and show a prompt. Claude Code renders this as a React component with the tool name, a description of what it wants to do, and approve/deny buttons. Codex shows it as a TUI overlay. In both cases, the stream resumes after the user decides.
+
+**Codex renders tool output uniformly.** All tool results go through the same formatting pipeline in the TUI. A grep result and a file edit get the same visual treatment. Claude Code has per-tool rendering: a file edit shows a colored diff, a grep shows highlighted matches with file paths, a bash command shows the command and its output separately. Each Claude Code tool implements its own React component for display, so the team can customize how each tool looks without changing a shared renderer.
+

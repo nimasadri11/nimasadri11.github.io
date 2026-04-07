@@ -1,0 +1,177 @@
+import CodeComparison from '../../components/CodeComparison.tsx';
+import Verdict from '../../components/Verdict.astro';
+import CodeBlock from '../../components/CodeBlock.tsx';
+import KairosLifecycleDiagram from '../../components/diagrams/KairosLifecycleDiagram.tsx';
+
+## Chapter 8: Where This Is Going
+
+> **The Future in Feature Flags.** Both codebases are full of gated, unshipped code that reveals where agent CLIs are heading. Feature flags are a window into what each team thinks the future looks like. The flags tell a convergence story: two teams independently arriving at the same next steps.
+
+The first seven chapters compared shipped code. This chapter compares unshipped feature flags: code that's written but not released. These features may change or be abandoned. The evidence is weaker, but the direction is clear.
+
+Codex is open-source under Apache-2.0. Claude Code's source was accidentally published via npm in March 2026. Both codebases are analyzable, but the Claude Code analysis relies on a source leak rather than an intentional release.
+
+### Decision 20: The Persistent Agent
+
+Claude Code is building something Codex is not: a persistent agent that runs when you're not looking.
+
+KAIROS transforms the CLI from a per-task tool into a long-lived assistant. Here's how it works.
+
+**The system prompt changes completely.** Normal Claude Code has a multi-section system prompt (identity, capabilities, task approach, tool guidance, etc.). KAIROS replaces it with a stripped-down autonomous prompt: "You are an autonomous agent. Use the available tools to do useful work." Most of the normal guidance sections are removed. The agent gets a proactive behavior section instead.
+
+**Tick prompts keep the agent alive.** Between user messages, the system sends `<tick>` prompts with the current local time. The model treats these as "you're awake, what now?" On the first tick of a new session, it greets the user and asks what to work on. On subsequent ticks, it either does useful work or calls the Sleep tool. The prompt is strict about idle ticks: "If you have nothing useful to do on a tick, you MUST call Sleep. Never respond with only a status message like 'still waiting' -- that wastes a turn and burns tokens for no reason."
+
+**Terminal focus changes behavior.** The terminal reports focus/blur events via DECSET 1004 escape sequences. When the user switches away from the terminal, a `terminalFocus: 'The terminal is unfocused'` field is injected into context. The proactive prompt section responds to this: when unfocused, "lean heavily into autonomous action -- make decisions, explore, commit, push. Only pause for genuinely irreversible or high-risk actions." When focused, "be more collaborative -- surface choices, ask before committing to large changes." The absence of the field means focused (the default).
+
+**Bash commands auto-background after 15 seconds.** If a shell command runs longer than `ASSISTANT_BLOCKING_BUDGET_MS` (15,000ms) and hasn't been explicitly set to run in background, it gets automatically moved to a background task. The model receives a message: "Command exceeded the assistant-mode blocking budget and was moved to the background." The `sleep` command is excluded from auto-backgrounding.
+
+**Communication goes through the Brief tool.** Instead of streaming text to the terminal, the model calls `SendUserMessage` with a message and a status flag. The prompt says: "Text outside this tool is visible in the detail view, but most won't open it -- the answer lives here." Status can be `normal` (replying to user) or `proactive` (agent-initiated: a scheduled task finished, a blocker surfaced). The anti-pattern to avoid: "the real answer lives in plain text while SendUserMessage just says 'done!'"
+
+**Memory switches to append-only daily logs.** Normal sessions maintain MEMORY.md as a live index. KAIROS sessions write to date-named log files (`logs/YYYY/MM/YYYY-MM-DD.md`) with short timestamped bullets. The model is told "do not rewrite or reorganize the log -- it is append-only." A separate nightly `/dream` skill distills logs into MEMORY.md and topic files. This separation matters because a perpetual session would constantly churn the index if it edited MEMORY.md directly.
+
+<KairosLifecycleDiagram client:visible />
+
+Codex has no equivalent daemon mode. Codex's Remote Control feature (connecting to ChatGPT's web UI via WebSocket) is connectivity, not autonomy. The agent runs in response to user actions. Both systems have web-UI bridges (Codex: Remote Control, Claude Code: Bridge) for access from different devices, but those don't make the agent autonomous.
+
+<CodeBlock client:visible code={`# Claude Code KAIROS lifecycle
+def on_activate():
+    system_prompt = "You are an autonomous agent."
+    enable_brief_mode()           # SendUserMessage
+    create_assistant_team()       # agents as teammates
+
+def on_tick(time):               # periodic wake-up
+    if has_work(): do_work()
+    else: sleep(duration)         # idle, wait for tick
+
+def on_terminal_blur():
+    inject("terminal is unfocused")
+    # goes autonomous: commit, push, explore
+
+def on_terminal_focus():
+    # becomes collaborative: ask before acting
+
+def on_bash_blocking(timeout=15):
+    move_to_background()          # stay responsive
+
+def on_memory_write():
+    append_to("logs/YYYY/MM/DD.md")  # not MEMORY.md`} />
+
+<Verdict>
+  <p>Persistent agents are where this is heading. An agent that monitors your CI, watches for review comments, and consolidates learnings while you sleep solves real problems. KAIROS is the clearest signal of where Claude Code thinks agent CLIs go next. Codex may build something similar, but as of now, persistence is a Claude Code bet that Codex hasn't matched. The architectural prerequisite is a memory system that works across sessions (both have this) and a cron scheduler that fires prompts on a schedule (Claude Code has this, Codex's cloud-tasks system addresses a different problem).</p>
+</Verdict>
+
+### Decision 21: Communication Channels
+
+Both teams are making the agent reachable from outside the terminal. The agent stops being a terminal app and becomes a service you can talk to from anywhere.
+
+Claude Code integrates through MCP's notification protocol. Discord, Slack, and SMS connections are implemented as MCP servers that push inbound messages as `<channel>` tags into the agent's context. The agent replies through channel-specific tools. Users can approve or deny permission requests from their phone via the messaging channel. The Sleep tool polls for inbound channel messages and wakes within one second, so the agent stays responsive even when idle.
+
+Codex builds an apps platform. GitHub, Notion, Slack, Gmail, Google Calendar, Figma, and Linear connect through MCP servers provided by ChatGPT's backend. Each connector requires ChatGPT auth. The architecture is a curated connector marketplace with install and OAuth flows managed by the platform.
+
+<CodeComparison client:visible
+  codex={`# Codex: curated app marketplace
+apps = chatgpt.list_connectors()
+# GitHub, Notion, Slack, Gmail, Figma, Linear...
+for app in apps:
+    install(app)             # OAuth flow via ChatGPT
+    tools = app.mcp_tools()  # platform-managed auth
+    register(tools)`}
+  claude={`# Claude Code: channel integration via MCP
+mcp_server = connect("slack-bridge")
+def on_notification(channel_msg):
+    inject_as_context("<channel>" + msg)
+def on_reply(agent_response):
+    mcp_server.call("send_message", response)
+# user approves actions from phone via channel`}
+/>
+
+Claude Code connects to messaging platforms. Codex connects to productivity tools. Different directions, same instinct: the terminal is too small.
+
+<Verdict>
+  <p>The MCP notification approach is more open. Any developer can write an MCP server that bridges a new channel, without waiting for a platform vendor to add it to a marketplace. The curated marketplace gives better out-of-box experience (install Slack in two clicks) but gates extensibility behind a platform team's priorities. For an agent that developers control, the open protocol wins.</p>
+</Verdict>
+
+### Decision 22: Code as Orchestration
+
+This is the most architecturally interesting divergence. How should the model compose tool calls?
+
+Codex ships Code Mode. The model writes JavaScript that runs in a sandboxed V8 isolate. No filesystem access, no network. All tools are exposed on a global `tools` object. Instead of calling tools one at a time and reasoning between each call, it writes a program that orchestrates the entire workflow.
+
+Claude Code has no equivalent. Tools are called individually through the standard tool-use protocol. Each step goes through the full model inference cycle.
+
+<CodeComparison client:visible
+  codex={`# Codex Code Mode: explicit orchestration
+# model writes this JavaScript
+files = await tools.list_files("src/")
+results = []
+for f in files:
+    content = await tools.read_file(f)
+    if "TODO" in content:
+        results.append({"file": f, "content": content})
+yield_control(results)  # stream back to user`}
+  claude={`# Claude Code: implicit orchestration
+# model reasons between each tool call
+call list_files("src/")        # inference cycle 1
+# model reads result, decides next step
+call read_file("file1.ts")    # inference cycle 2
+# model reads result, checks for TODO
+call read_file("file2.ts")    # inference cycle 3
+# ...one inference cycle per file`}
+/>
+
+The tradeoff: Code Mode uses one inference cycle to write the program, then tools execute without model reasoning between them. Standard tool-use forces the model to re-reason at every step, costing more tokens but letting it adapt mid-execution.
+
+<Verdict>
+  <p>Code Mode is the right bet for structured workflows. When the model knows what it wants to do, writing a program is faster and cheaper than reasoning step-by-step. The key insight is making the V8 isolate sandboxed (no filesystem, no network), so Code Mode can't bypass the permission system. This is how tool-use evolves: from "call one tool at a time" to "write a program that calls many tools." Expect Claude Code to build something similar.</p>
+</Verdict>
+
+### Decision 23: Batch Execution
+
+Codex builds a batch primitive called SpawnCsv. Give it a CSV file and an instruction template. It spawns one worker per row. Map-reduce pattern: "process these 100 PRs" by running 100 parallel agents, one per row. Results are collected into an output CSV.
+
+Claude Code has no equivalent batch primitive. Multi-agent work goes through the team and coordinator system, designed for 3 to 10 agents collaborating on a single complex task. Not 100 agents running 100 independent tasks.
+
+<CodeComparison client:visible
+  codex={`# Codex: batch fan-out
+csv = read("pull_requests.csv")
+template = "Review PR #{number} in {repo}"
+workers = []
+for row in csv:
+    prompt = template.fill(row)
+    workers.append(spawn_agent(prompt))
+results = await_all(workers)
+write("results.csv", results)`}
+  claude={`# Claude Code: team coordination
+team = create_team(agents=5)
+team.assign("Review these 3 related PRs")
+# designed for collaborative work
+# not for 100 independent parallel tasks`}
+/>
+
+These solve different problems. Batch fan-out handles embarrassingly parallel workloads. Team coordination handles collaborative ones. A complete system needs both.
+
+<Verdict>
+  <p>The batch primitive fills a gap that team coordination cannot. Processing 100 independent items does not require agents to communicate with each other. It requires a simple map-reduce. CSV as the interface is pragmatic: everyone has CSVs, and the format forces you to define your inputs cleanly. This is low-hanging fruit that any agent CLI should ship.</p>
+</Verdict>
+
+### The Convergence Map
+
+Under the branding, both teams are converging on the same product:
+
+**Memory systems.** Both are building sophisticated cross-session memory. Codex's is more automated (session files indexed automatically). Claude Code's is more structured (explicit MEMORY.md with semantic retrieval). Both are heading toward agents that remember everything.
+
+**Security reviewers.** Both are building automated security review of agent actions. Codex calls it Guardian. Claude Code calls it the Verification Agent. Same concept: an LLM that reviews another LLM's work before it executes.
+
+**Borrowing patterns.** Codex's codebase contains a `ClaudeHooksEngine`, named after Claude Code's hook system. Both systems have web-UI bridges (Codex: Remote Control, Claude Code: Bridge) for remote access.
+
+**Context management.** Both are investing heavily in making agents work within context windows that are always too small. Different strategies, same constraint driving the investment.
+
+The agent CLI is becoming a daemon that remembers your codebase and runs work while you sleep.
+
+### What the Feature Flags Tell Us
+
+Four decisions, and the pattern is different from the first six chapters. In Chapters 1 through 7, the two systems disagree on implementation but agree on scope. Here, they disagree on scope. Claude Code bets on local persistence and open protocols. Codex bets on cloud connectivity and platform integration.
+
+The feature flags reveal that both teams think the terminal is too small. The agent needs to persist beyond a session, communicate outside the terminal, orchestrate complex workflows in code, and process work at batch scale. The disagreement is about who controls the agent: the developer on their machine, or the platform in the cloud.
+
+That disagreement shapes everything else.

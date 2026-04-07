@@ -1,0 +1,131 @@
+import CodeComparison from '../components/CodeComparison.tsx';
+import Verdict from '../components/Verdict.astro';
+import DeepDive from '../components/DeepDive.astro';
+
+## Act 7: The Extension Layer
+
+> **8. The Extension Layer.** A useful agent CLI must be extensible beyond what its creators anticipated. Users need to hook into the agent's lifecycle (before/after tool calls, on session start), connect external tool servers (via MCP), define reusable behaviors (skills), and install third-party additions (plugins). The extension surface determines whether the tool can adapt to every team's workflow or locks users into the creators' assumptions.
+
+No two teams use an agent CLI the same way. One team needs a pre-flight check before every shell command. Another wants to connect a proprietary code search server. A third wants reusable prompt recipes shared across the organization. The extension surface is what separates a tool from a platform. Build too little and users hit walls. Build too much and the abstraction layers become the product instead of the agent.
+
+### Decision 17: Hooks
+
+Both systems let users intercept the agent lifecycle at the same five points: session start, before tool use, after tool use, prompt submission, and stop. They disagree about what a hook *is*.
+
+Codex hooks are shell commands. The system spawns a subprocess, pipes JSON to stdin, and reads JSON from stdout. Exit code 0 means success. Exit code 2 means "block this action" (the reason comes from stderr). All matched hooks for an event run in parallel via `join_all`. The hook can return a `decision: "block"` in JSON or use the exit code shorthand. Hooks cannot modify tool inputs or inject context into the conversation. They're gatekeepers, not transformers.
+
+Claude Code hooks are in-process async generators. Each hook `yield`s results as it executes: progress updates, permission overrides, input modifications, additional context for the model. A pre-tool-use hook can return `permissionBehavior: "allow"` to auto-approve a tool call, `"deny"` to block it, or `"ask"` to force a confirmation dialog. Hooks can rewrite the tool's input via `updatedInput` and inject `additionalContext` that gets appended to the conversation. But there's a hard constraint: a hook's "allow" cannot bypass deny rules from `settings.json`. The permission system always gets final say.
+
+Beyond shell commands, Claude Code also supports agent hooks. An agent hook is a full multi-turn LLM conversation that runs as the hook body. The system spawns a mini-agent with its own system prompt, sends it the hook payload as JSON, and collects structured output. This lets hooks make decisions that require reasoning, not just pattern matching.
+
+<CodeComparison client:visible
+  codex={`// Codex: shell commands, parallel execution
+hook = spawn("./check-policy.sh")
+hook.stdin.write(json_payload)
+result = hook.wait()
+if result.exit_code == 2:
+  block(reason=result.stderr)
+elif result.stdout.decision == "block":
+  block(reason=result.stdout.reason)`}
+  claude={`// Claude Code: async generators, in-process
+for await result of hook.execute(payload):
+  if result.permissionBehavior == "deny":
+    block(reason)
+  if result.updatedInput:
+    tool_input = result.updatedInput
+  if result.additionalContext:
+    conversation.append(context)`}
+/>
+
+<Verdict>
+  <p>Shell-command hooks are the right starting point. They work with any language, can't crash the host process, and the exit-code protocol is dead simple. But input mutation and context injection (the async generator approach) solve real problems. A pre-tool-use hook that rewrites a file path or adds "also check the tests" to the model's context is more useful than one that can only say yes or no. Build the gatekeeper first, add the transformer when users ask.</p>
+</Verdict>
+
+### Decision 18: MCP
+
+The Model Context Protocol lets an agent connect to external tool servers. A code search engine, a database browser, a deployment system. MCP standardizes how tools are discovered, described, and called. The question is which side of the protocol each system plays.
+
+Codex plays both sides. It acts as an MCP client (connecting to external tool servers to gain new capabilities) and as an MCP server (exposing itself to IDEs and other tools as a callable agent). The MCP server reads JSON-RPC messages from stdin, processes tool calls through a `ThreadManager`, and writes responses to stdout. An IDE like VS Code can spawn Codex as a subprocess and talk to it over this protocol, treating the entire agent as a single tool. The app-server layer bridges MCP tool calls into the agent's normal execution flow, including the approval system.
+
+Claude Code is client-only. It connects to external MCP servers via three transports (stdio, SSE, HTTP) and wraps every discovered tool into its native `Tool` interface. This means MCP tools get the same permission checks, hooks, and analytics as built-in tools. There is no special "MCP mode." To the permission system, an MCP tool call looks identical to a built-in tool call. The client also handles OAuth flows for authenticated MCP servers and resizes images from tool responses to fit the model's context.
+
+<CodeComparison client:visible
+  codex={`// Codex: both client and server
+// As client: connect to tool servers
+mcp_client.connect("code-search-server")
+tools = mcp_client.list_tools()
+// As server: expose self to IDEs
+stdin.read(json_rpc_request)
+result = thread_manager.call_tool(request)
+stdout.write(json_rpc_response)`}
+  claude={`// Claude Code: client only
+// Connect to tool servers, wrap as native tools
+for server in mcp_servers:
+  client = connect(server, transport)
+  for tool in client.list_tools():
+    native = MCPTool(tool)    // same interface as built-ins
+    native.permissions = same_as_builtin
+    native.hooks = same_as_builtin
+    register(native)`}
+/>
+
+<Verdict>
+  <p>Playing MCP server is the bigger insight. When your agent is also a server, it composes with any MCP-aware client. IDEs, other agents, automation scripts. That turns the CLI from a standalone tool into a building block. Claude Code's approach of normalizing MCP tools into native tools is smart engineering (one permission system for everything), but it leaves the agent as a leaf node. Being both client and server makes you a network participant.</p>
+</Verdict>
+
+### Decision 19: Skills
+
+Skills are reusable behaviors. "When I say /deploy, run this sequence." "When the model sees a test file, include these guidelines." Both systems support skills but model them differently.
+
+Codex skills are markdown files named `SKILL.md`, discovered from configurable root directories (user, repo, system). The system walks the skill roots at startup, parses each file's frontmatter for metadata (name, description, trigger patterns), and injects matching skills into the system prompt. A file watcher hot-reloads skills when they change on disk. Skills can declare environment variable dependencies that get resolved interactively: if a skill needs `DEPLOY_TOKEN` and it's not set, the system prompts the user. System skills ship embedded in the binary and get extracted to `CODEX_HOME/skills/.system` on first run, with a fingerprint-based cache to avoid redundant writes.
+
+Claude Code skills are invoked as tool calls. The model calls `Skill("name")` and the runtime loads the skill definition. Skills can be bundled (compiled into the binary), loaded from `.claude/commands/` directories, or provided by plugins. Each skill is a `Command` object with a `getPromptForCommand` function that returns content blocks. Skills can specify allowed tools, model overrides, and whether they run inline or fork a sub-agent. The system tracks which skills have been invoked per session and per agent to avoid double-loading. MCP servers can also expose skills through MCP prompts, bridging the two extension mechanisms.
+
+<CodeComparison client:visible
+  codex={`// Codex: markdown files, injected into prompt
+// ~/.codex/skills/deploy/SKILL.md
+walk(skill_roots) -> find SKILL.md files
+for skill in discovered:
+  parse_frontmatter(skill)
+  if matches_trigger(user_input):
+    system_prompt.append(skill.body)
+// File watcher reloads on change`}
+  claude={`// Claude Code: tool calls, on-demand loading
+// Model decides to invoke a skill
+model.calls(Skill, {name: "deploy", args: "prod"})
+command = find_command("deploy")
+prompt = command.getPromptForCommand(args)
+if command.context == "fork":
+  run_as_sub_agent(prompt)
+else:
+  inject_inline(prompt)`}
+/>
+
+<Verdict>
+  <p>The markdown-file-on-disk model is better for discoverability and collaboration. Skills live in version control, teams can PR them, and new hires find them by browsing a directory. Tool-call invocation is better for precision: the model picks exactly when to use a skill, rather than the system trying to pattern-match triggers against user input. The best design combines both: markdown files for definition, model-driven invocation for execution.</p>
+</Verdict>
+
+<DeepDive title="The Plugin Ecosystem" hook="how Claude Code built a full marketplace while Codex stayed skill-only">
+
+Claude Code has a plugin system that goes well beyond skills. Plugins are installable packages that can provide any combination of: slash commands, hooks, agents, MCP server configurations, output styles, and keybindings. They live in directories with a defined structure:
+
+```
+my-plugin/
+├── plugin.json     # manifest with metadata
+├── commands/       # slash commands as markdown
+├── agents/         # agent definitions as markdown
+└── hooks/          # hook configurations as JSON
+```
+
+Plugins are distributed through marketplaces. A marketplace is a JSON manifest listing available plugins with their names, descriptions, versions, and install sources (git repos or npm packages). There is an official Anthropic marketplace, and organizations can run private ones. The system handles:
+
+- **Auto-update**: official marketplace plugins update automatically; third-party marketplaces can opt in.
+- **Blocklisting**: delisted plugins are detected by comparing installed plugins against marketplace manifests and auto-uninstalled.
+- **Impersonation protection**: marketplace names are validated against reserved patterns ("anthropic-official", "claude-marketplace") and checked for homograph attacks using non-ASCII characters.
+- **Policy controls**: organizations can allowlist/blocklist marketplace sources and enforce plugin policies through settings.
+
+Codex has nothing equivalent. Its extension model stops at skills and MCP servers. This is a deliberate scope decision: skills cover most customization needs without the complexity of a package manager, version resolution, and supply chain security. The tradeoff is that Codex users who want to share complex extensions (hooks + skills + MCP configs as a bundle) have no standard way to do it.
+
+The plugin system also introduces custom agents: markdown files in `.claude/agents/` that define a system prompt, tool whitelist, and MCP servers. These are a superset of skills. A skill is "use this prompt when invoked." An agent is "become this persona with these capabilities." Organizations use them for specialized roles: "security reviewer," "database migration assistant," "API design critic."
+
+</DeepDive>

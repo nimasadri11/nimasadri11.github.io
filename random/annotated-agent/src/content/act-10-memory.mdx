@@ -1,0 +1,151 @@
+import CodeComparison from '../components/CodeComparison.tsx';
+import Verdict from '../components/Verdict.astro';
+import DeepDive from '../components/DeepDive.astro';
+
+## Act 10: The Memory Layer
+
+> **11. The Memory Layer.** A stateless agent loop forgets everything between sessions. A useful agent remembers: what the user prefers, what the codebase looks like, what worked last time. The memory layer determines whether an agent learns from experience or starts fresh every session. It spans session persistence (save and resume conversations), cross-session memory (facts that persist across sessions), automatic consolidation (the agent reviewing its own history to extract learnings), and sensory input (voice, not just text).
+
+A tool-calling loop that forgets everything between sessions is a fancy autocomplete. The user teaches it their testing style, their naming conventions, which directories matter. Next session, all of it is gone. The memory layer is what separates an agent that *learns* from one that merely *executes*.
+
+Both Codex and Claude Code solve this problem. They disagree about how active the agent should be in managing its own memory.
+
+### Decision 23: Session Memory
+
+Every conversation produces a transcript. The question is what form it takes and how much structure the system imposes on top of it.
+
+Codex stores sessions as append-only JSONL files organized by date under `~/.codex/sessions/`. Each event (model response, tool call, metadata change) gets one line. Resume means replaying the file from the top. Fork means copying events up to a point and continuing from there. A SQLite database mirrors metadata from the JSONL files for fast queries: listing sessions, searching by title, sorting by date. The JSONL files are the source of truth; SQLite is a read-optimized index.
+
+Claude Code builds three layers. First, session transcripts saved as JSON, keyed by UUID so incremental writes don't create duplicates. Second, a background "session memory" subagent that periodically reads the conversation and writes a running summary to a markdown file. This summary survives context compaction, so even when the conversation is compressed to fit the context window, key decisions are preserved. Third, a persistent memory system (described next) that carries knowledge across sessions entirely.
+
+<CodeComparison client:visible
+  codex={`// Codex: append-only event log
+for each event in session:
+  append_jsonl(session_file, event)
+// resume: replay events from file
+// fork: copy events to new file, continue
+// SQLite mirrors metadata for fast queries`}
+  claude={`// Claude Code: layered session state
+save_transcript(session_id, messages)
+// periodically:
+if token_growth > threshold:
+  subagent.summarize(conversation)
+  write_file("session_memory.md", summary)
+// summary survives context compaction`}
+/>
+
+<Verdict>
+  <p>Append-only JSONL is the right default for session transcripts. It is append-only, crash-safe, and trivial to debug by reading the file directly. The session memory subagent is a separate concern: it solves the context compaction problem, where a long conversation gets compressed and loses important details. If your agent supports long sessions with compaction, you need something like this. If sessions are short or you do not compact, skip it.</p>
+</Verdict>
+
+### Decision 24: Cross-Session Memory
+
+Session persistence gets you "resume where you left off." Cross-session memory gets you "remember what I told you last week." The difference is whether the agent accumulates knowledge over time.
+
+Codex keeps this implicit. The JSONL rollout files exist on disk. A user can resume any session. But there is no mechanism for information from session A to influence session B unless the user explicitly resumes session A or the system is pointed at the same rollout.
+
+Claude Code makes this explicit with a file-based memory system. The agent has a memory directory (typically `~/.claude/projects/<project>/memory/`) containing markdown files organized by topic. A `MEMORY.md` index file acts as the table of contents. Each topic file has frontmatter with a name, description, and type (user preference, feedback, project context, or reference). The index is always loaded into the system prompt. When a new conversation starts, a side-query to a smaller model scans file headers and selects up to five relevant memories to inject into context.
+
+The memory taxonomy has four types. *User memories* capture preferences and working style ("uses bun, not npm"). *Feedback memories* record corrections ("stop summarizing diffs"). *Project memories* store context not derivable from the code (deadlines, architectural decisions, incident history). *Reference memories* hold lookup information the agent will need again.
+
+The agent reads and writes these files during normal conversation. When a user says "remember that I prefer explicit error handling," the agent writes a memory file and updates the index. When a user says "forget what I said about testing," the agent finds and removes the relevant entry.
+
+<CodeComparison client:visible
+  codex={`// Codex: implicit memory via session files
+// No cross-session memory mechanism
+// Knowledge stays in session transcripts
+// User must resume a specific session`}
+  claude={`// Claude Code: active memory management
+memories = find_relevant(current_context)
+inject_into_system_prompt(memories)
+// during conversation:
+if user_said_remember:
+  write_file("feedback_testing.md", insight)
+  update_index("MEMORY.md")`}
+/>
+
+<Verdict>
+  <p>Cross-session memory changes the agent's character. Without it, every conversation is a first date. With it, the agent develops a working relationship with the user. The file-based approach is worth stealing: markdown files are human-readable, version-controllable, and debuggable. The semantic retrieval step (asking a small model to pick relevant memories) is what makes it scale past a dozen files without blowing up the context window.</p>
+</Verdict>
+
+<DeepDive title="The Dream System" hook="an agent that reviews its own history while you sleep">
+
+The most novel feature in either codebase: Claude Code's "dream" system. A background agent that reviews recent session transcripts, extracts durable learnings, and consolidates them into the persistent memory files.
+
+The dream fires automatically. Four gates control when, evaluated cheapest first. (1) Time gate: at least 24 hours since the last consolidation. (2) Session gate: at least 5 new sessions have accumulated. (3) Scan throttle: no more than one scan every 10 minutes, to avoid redundant work when the time gate keeps passing but the session gate does not. (4) Lock: a file-based lock using PID and mtime to prevent concurrent consolidations.
+
+Once all gates pass, the system spawns a forked subagent with a four-phase prompt.
+
+**Phase 1, Orient.** List the memory directory. Read the index. Skim existing topic files to avoid creating duplicates.
+
+**Phase 2, Gather.** Search recent session transcripts for new signal. Grep narrowly (the transcripts are large JSONL files). Look at daily logs if they exist. Check whether existing memories have drifted from reality.
+
+**Phase 3, Consolidate.** For each thing worth remembering, write or update a topic file. Merge new signal into existing files rather than creating near-duplicates. Convert relative dates ("yesterday") to absolute dates so they remain interpretable later. Delete contradicted facts at the source.
+
+**Phase 4, Prune.** Update the index so it stays under 200 lines and 25KB. Remove pointers to stale memories. Shorten verbose entries. Resolve contradictions between files.
+
+The lock mechanism is careful about failure. If the dream completes, the lock's mtime stays at the current time (marking "last consolidated now"). If the dream fails, the mtime rolls back to its pre-acquisition value so the time gate passes again on the next attempt. If the process crashes, the lock file contains a dead PID, and the next process reclaims it.
+
+The forked agent runs with restricted permissions: read-only bash (ls, grep, cat) and write access only to memory files. It cannot modify source code or run arbitrary commands. A progress watcher tracks which files the dream touches and reports a summary to the main conversation when it finishes.
+
+This is the closest thing either system has to an agent that reflects on its own performance. It does not evaluate whether it was helpful or correct. But it does review what happened and extract patterns for next time. The line between "organized notes" and "learning from experience" is thinner than it looks.
+
+</DeepDive>
+
+### Decision 25: Voice Input
+
+Text is the default input modality for both systems. Voice is an alternative, and the two approaches differ in ambition.
+
+Codex implements bidirectional realtime voice. The `cpal` audio library captures microphone input and plays speaker output. A full voice conversation mode lets the user talk to the agent and hear it respond. The system handles device enumeration, sample rate negotiation, and audio frame encoding. On Linux, audio is disabled entirely (the feature is behind a compile-time gate).
+
+Claude Code implements push-to-talk speech-to-text. Hold a key, speak, release. Audio streams over a WebSocket to a server-side transcription endpoint. The transcribed text is inserted into the input field. The agent never speaks back. Supports 15+ languages through a normalization layer that maps language names to BCP-47 codes.
+
+<CodeComparison client:visible
+  codex={`// Codex: bidirectional voice conversation
+mic = open_audio_device(microphone)
+speaker = open_audio_device(speaker)
+session = start_realtime_conversation()
+// continuous: mic -> model -> speaker
+send_audio_frame(mic.capture())
+play_audio_frame(session.receive())`}
+  claude={`// Claude Code: push-to-talk transcription
+on key_hold:
+  ws = connect_stt_endpoint(language)
+  stream_audio(microphone, ws)
+on key_release:
+  transcript = ws.finalize()
+  insert_into_input(transcript)
+// text only -- agent never speaks`}
+/>
+
+<Verdict>
+  <p>Push-to-talk transcription is the pragmatic choice for a CLI tool. It adds voice as an input method without changing the interaction model. Bidirectional voice is more ambitious but harder to get right in a terminal context, where the primary output is code and diffs. Build push-to-talk first. Add voice output later if users ask for it.</p>
+</Verdict>
+
+### Decision 26: Plan Mode
+
+Both systems let the agent plan before executing. The mechanism of entering and exiting plan mode reveals different philosophies about who controls the agent's behavior.
+
+Codex treats plan mode as one of several "collaboration modes." The user cycles through modes with a keyboard shortcut. Plan mode and Default mode are the two visible options. Each mode is a named configuration that adjusts settings like whether the model should ask for user input before acting. The user controls which mode is active. The agent operates within the constraints of whatever mode is selected.
+
+Claude Code lets the agent itself request a mode change. The model calls an `EnterPlanMode` tool, which triggers a permission dialog: "Claude wants to enter plan mode to explore and design an implementation approach." The user approves or rejects. In plan mode, the agent explores the codebase, identifies patterns, and designs a strategy. No code changes happen until the user approves the plan. The latest version runs multiple exploration subagents in parallel and includes an interview phase where the agent asks clarifying questions before planning.
+
+<CodeComparison client:visible
+  codex={`// Codex: user-controlled mode cycling
+modes = [Default, Plan]
+on key_press(shift+tab):
+  current_mode = next_mode(current_mode)
+// mode constrains agent behavior
+// user decides when to plan vs execute`}
+  claude={`// Claude Code: agent-initiated transition
+// model decides planning is needed:
+tool_call("EnterPlanMode")
+// user sees permission dialog:
+//   "Enter plan mode? [Yes / No]"
+// agent explores, then presents plan
+// no code changes until user approves`}
+/>
+
+<Verdict>
+  <p>Agent-initiated plan mode is the better default for complex tasks. The agent knows when it is uncertain better than the user does. But the user must retain veto power, which the permission dialog provides. The keyboard shortcut for manual mode switching is still valuable as an override: sometimes the user knows they want planning before the agent figures it out. Ship both.</p>
+</Verdict>

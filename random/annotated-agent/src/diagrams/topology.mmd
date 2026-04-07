@@ -1,0 +1,13 @@
+flowchart TD
+    subgraph Codex["Codex: Tree"]
+        P[Parent] --> E1[Explorer]
+        P --> W1[Worker]
+        P --> E2[Explorer]
+    end
+    subgraph CC["Claude Code: Team"]
+        L[Leader] -.-> R[Researcher]
+        L -.-> I[Implementer]
+        L -.-> V[Verifier]
+        R <--> I
+        I <--> V
+    end

@@ -1,0 +1,77 @@
+import CodeComparison from '../../components/CodeComparison.tsx';
+import Verdict from '../../components/Verdict.astro';
+
+
+
+## Chapter 6: The Memory Layer
+
+> **The Memory Layer.** A useful agent remembers what the user prefers and what worked last time. The memory layer covers cross-session persistence, automatic consolidation, and planning.
+
+Both systems are building cross-session memory. Claude Code's is shipped. Codex's is behind a feature flag ("memories") and more automated, but not released yet.
+
+### Decision 16: Cross-Session Memory
+
+Session persistence lets you resume where you left off. Cross-session memory lets the agent remember what you told it last week. The difference is whether accumulated knowledge influences future sessions.
+
+**Claude Code** ships a file-based memory system. A memory directory holds markdown files organized by topic. An index file (MEMORY.md) acts as a table of contents and loads into the system prompt. At conversation start, a side-query picks up to five relevant memories to inject into context. "Remember that I prefer explicit error handling" writes a memory file. "Forget what I said about testing" removes it.
+
+**Codex** takes a different approach. Behind the "memories" feature flag sits a two-phase, SQLite-backed pipeline. Phase 1 extracts structured memories from recent sessions: preference signals, reusable knowledge, failures, references. It runs up to eight extractions in parallel.
+
+Phase 2 is consolidation (next section). The output is a hierarchy: `memory_summary.md` for every system prompt (truncated to 5K tokens), a `MEMORY.md` handbook, auto-generated skill files, and per-rollout summaries. Every memory tracks `usage_count` and `last_usage`, so the system knows which memories earn their keep.
+
+<CodeComparison client:visible
+  codex={`# Codex: automated SQLite pipeline (behind flag)
+claim_sessions(db, limit=8)
+for session in claimed:
+    memories = extract(session, model="gpt-5.4-mini")
+    # structured: preferences, knowledge, failures
+    store(db, memories, usage_count=0)
+# at startup:
+inject(memory_summary_md, truncate=5000)
+quick_memory_pass(search_steps=range(4, 7))`}
+  claude={`# Claude Code: file-based, agent-managed (shipped)
+memories = semantic_retrieve(current_context, limit=5)
+inject_into_system_prompt(memories)
+# during conversation:
+if user_said_remember:
+    write_file("feedback_testing.md", insight)
+    update_index("MEMORY.md")
+# human-readable markdown all the way down`}
+/>
+
+<Verdict>
+  <p>Claude Code's file-based approach is the right starting point. Users can read, edit, and debug their agent's memory. The agent manages its own memory through normal file operations. Codex bets on automation: a background pipeline that extracts, scores, and consolidates memories without user intervention. Usage tracking and citation blocks give Codex's system better observability into which memories matter. Start with files. Add usage tracking when you have enough sessions to measure retention.</p>
+</Verdict>
+
+### Decision 17: Memory Consolidation
+
+Raw memories accumulate. Without consolidation, the system drowns in redundant, contradictory, or stale entries. Both systems solve this, but at different levels of automation.
+
+**Claude Code** calls its consolidation system "dream." It fires automatically when four gates pass, evaluated cheapest first:
+
+1. **Time gate.** At least 24 hours since the last consolidation.
+2. **Session gate.** At least 5 new sessions since the last run.
+3. **Scan throttle.** No more than one scan every 10 minutes.
+4. **Lock.** A file-based lock using PID and mtime to prevent concurrent consolidations.
+
+Once all gates pass, the system spawns a subagent with restricted permissions (read-only bash, write access only to memory files) and a four-phase prompt:
+
+**Phase 1: Orient.** The subagent runs `ls` on the memory directory, reads the MEMORY.md index file, and skims existing topic files. The goal is to understand what's already stored before adding anything. If assistant-mode daily log directories exist (`logs/YYYY/MM/`), it reviews recent entries there too. This prevents the most common failure mode: creating a duplicate memory that says the same thing as an existing one in different words.
+
+**Phase 2: Gather.** The subagent looks for new information worth persisting, checking three sources in priority order. First, daily log files (the append-only stream from assistant mode sessions). Second, existing memories that have drifted from reality (a memory says "the API uses JWT tokens" but the code switched to session cookies). Third, session transcripts, but only with narrow grep queries (e.g., `grep -rn "build failure" transcripts/ --include="*.jsonl" | tail -50`). The prompt explicitly says "don't exhaustively read transcripts. Look only for things you already suspect matter." Session transcripts are large JSONL files; reading them in full would burn the subagent's context window on noise.
+
+**Phase 3: Consolidate.** For each piece worth remembering, the subagent writes or updates a topic file using the memory format from the system prompt (frontmatter with name, description, type, then content with Why/How-to-apply structure). The emphasis is on merging into existing files rather than creating new ones. Relative dates get converted to absolute ("yesterday" → "2026-04-06") so they stay interpretable months later. Contradicted facts get deleted at the source, not appended with a correction.
+
+**Phase 4: Prune.** The subagent updates MEMORY.md so it stays under 200 lines and 25KB. The index is a table of contents, not a data store. Each entry should be one line under ~150 characters: `- [Title](file.md) — one-line hook`. If an index line exceeds ~200 characters, the detail belongs in the topic file, not the index. Stale pointers get removed. Contradictions between files get resolved (if two files disagree, fix the wrong one). The subagent returns a summary of what changed, or says "nothing changed" if the memories are already clean.
+
+The lock mechanism handles failure carefully. If the dream completes, the lock's mtime stays at the current time. If it fails, the mtime rolls back to its pre-acquisition value so the time gate passes again on the next attempt. If the process crashes, the lock file contains a dead PID, and the next process reclaims it. Two processes racing both write their PID; the second one re-reads and sees the other's PID, so it backs off. If the lock holder's PID is dead and the lock is older than an hour, the next process reclaims it.
+
+**Codex** handles consolidation as Phase 2 of its memory pipeline. It takes a global lock (serialized, unlike extraction which runs in parallel). The consolidator loads the top-N memories ranked by `usage_count` then `last_usage`, so frequently-used memories survive and forgotten ones decay. A sandboxed sub-agent produces the output hierarchy: memory summary, handbook, skill files, and per-rollout summaries. The retention decision is data-driven: if the system never cited a memory, that memory drops in rank and eventually gets pruned.
+
+The key difference: Claude Code's dream is a periodic background sweep that reviews raw session transcripts. Codex's consolidation operates on pre-extracted structured memories. Claude Code starts from unstructured data and imposes structure. Codex structures data at extraction time and consolidation reorganizes it.
+
+<Verdict>
+  <p>Claude Code's four-gate design works well: cheap checks first, expensive work only when they all pass. The benefit is that consolidation runs without user intervention and without wasting compute on redundant sweeps. Codex's usage-count retention adds a different benefit: memories that influence outputs survive, memories that don't get pruned, so the system self-cleans over time. The downside of Claude Code's approach is starting from unstructured transcripts (slow to scan). The downside of Codex's is needing a SQL database for coordination (more infrastructure). I think the ideal system combines both: pre-structure at extraction time, then use a gated background sweep for consolidation.</p>
+</Verdict>
+
+

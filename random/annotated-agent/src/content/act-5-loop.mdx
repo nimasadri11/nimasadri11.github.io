@@ -1,0 +1,83 @@
+import CodeComparison from '../components/CodeComparison.tsx';
+import Verdict from '../components/Verdict.astro';
+import DeepDive from '../components/DeepDive.astro';
+
+## Act 5: The Loop Controller
+
+> **6. The Loop Controller.** After each tool execution, the agent decides: keep going or stop? If the model's response contained tool calls, the results need to go back for another turn. If no tool calls, the task is done. The controller also handles errors (API failures, context overflow, rate limits), manages sub-agents when the model spawns them, and persists the session for later resumption.
+
+The tool ran. The result is back. Now the loop faces its core question: is the job done, or do we go around again? The skeleton is the same in every agent: call the model, parse tool calls, execute them, feed results back, repeat until the model stops calling tools. Where systems diverge is everything around that skeleton: when to spawn more agents, what to do when things break, and how to manage the context window before it manages you.
+
+### Decision 11: Multi-Agent
+
+When a task is too big for one agent, both systems can spawn child agents. They disagree about how much surface area the spawning mechanism needs.
+
+Codex keeps it minimal. Spawn a child with a prompt and the parent's configuration. Send it messages. Wait for results. Close it when it's done. Children form a tree with a depth limit. Fork mode lets a child start with a filtered copy of the parent's conversation history.
+
+Claude Code's surface is wider. Agent types are defined as markdown files (system prompt, tool whitelist, MCP servers) that live in version control. Agents can run in the background. A task management system lets the model create, track, and complete work items. Teams of agents communicate through a shared message bus. Child agents can run in isolated git worktrees. Fork mode shares the parent's prompt cache, so the child's first request avoids re-processing the entire parent conversation.
+
+<CodeComparison client:visible
+  codex={`// Codex: spawn-and-wait
+child = spawn_agent(prompt, config)
+child.send("fix the tests")
+result = child.wait()
+child.close()`}
+  claude={`// Claude Code: rich orchestration
+agent = spawn(prompt, type="custom-reviewer",
+              background=true,
+              isolation="worktree")
+tasks.create("Review auth module")
+send_message(agent, "check error handling")
+result = tasks.wait("Review auth module")`}
+/>
+
+<Verdict>
+  <p>Start simple. Spawn-and-wait covers 90% of use cases. Add the rich surface (task boards, teams, custom agent types) only when you see users outgrowing spawn-and-wait. The markdown agent definition format is worth stealing regardless. It makes agent types version-controllable and easy to iterate on.</p>
+</Verdict>
+
+### Decision 12: Error Recovery
+
+Both systems need to handle API failures, context window overflow, rate limits, and model errors. The question is how aggressively to recover before surfacing the failure to the user.
+
+Codex wraps each request in a retry loop with exponential backoff. If the WebSocket connection fails repeatedly, it falls back to HTTP and resets the retry counter. If the context window overflows, it compacts the conversation. Rate limit headers are captured and respected.
+
+Claude Code layers three recovery strategies. When the model hits its output token limit, the system injects a "please continue" message and loops (up to 3 times). When the prompt is too long, it compresses context. When the primary model is overloaded, it falls back to a cheaper model and retries.
+
+<CodeComparison client:visible
+  codex={`// Codex: backoff + transport fallback
+retry with backoff
+if websocket_fails_3x: switch_to_http
+if context_overflow: summarize_conversation
+if rate_limited: wait(retry_after)`}
+  claude={`// Claude Code: layered recovery
+if output_truncated: send("continue") // up to 3x
+if prompt_too_long: compress_context
+if api_overloaded: downgrade_model    // e.g. Opus -> Sonnet
+if rate_limited: wait(retry_after)`}
+/>
+
+<Verdict>
+  <p>Model downgrade under load is a practical pattern worth copying. Users care about responsiveness more than which specific model answers. The "continue" message for truncated output is cheap insurance. Transport fallback (WebSocket to HTTP) solves a problem specific to Codex's dual-transport architecture, but the principle generalizes: always have a degraded path that keeps the user unblocked.</p>
+</Verdict>
+
+### Decision 13: Loop Continuation
+
+When should the agent proactively manage its context window?
+
+Codex checks the token count before each turn. If it's approaching the limit, it compresses the conversation before sending the next request. Proactive: the API never sees a prompt that's too long.
+
+Claude Code waits for the API to reject the prompt as too long, then compresses. Reactive: no work is wasted on compaction that turns out to be unnecessary.
+
+<Verdict>
+  <p>Proactive avoids errors. Reactive avoids unnecessary work. If your compaction is cheap (token counting + truncation), be proactive. If it's expensive (LLM summarization), be reactive. Codex can afford proactive because it tracks token counts locally. Claude Code's compaction involves an LLM call, so waiting until it's needed makes sense.</p>
+</Verdict>
+
+<DeepDive title="Session Persistence" hook="saving and resuming agent conversations">
+
+Both systems persist conversations to disk so users can resume where they left off.
+
+Codex writes JSONL rollout files organized by date. Each line records a response item, session metadata, or turn context snapshot. To resume, the system reads the file back and reconstructs session state. Fork mode reads a parent's rollout, filters it to keep only the important messages (dropping intermediate tool calls and reasoning), and boots a new child with that history.
+
+Claude Code writes transcripts incrementally, keyed by UUID to deduplicate across writes. Subagent transcripts go to a separate file under the session directory. A persistent memory system carries information across sessions, so the agent remembers project context even when starting fresh. The resume flag loads the transcript and feeds it back into the query loop.
+
+</DeepDive>

@@ -1,0 +1,120 @@
+import CodeComparison from '../components/CodeComparison.tsx';
+import Verdict from '../components/Verdict.astro';
+import DeepDive from '../components/DeepDive.astro';
+
+## Act 3: The Stream
+
+> **3. The Stream.** The agent sends the prompt to the language model and receives a streaming response. Tokens arrive one at a time. Some tokens are text (shown to the user). Some are tool calls (parsed and executed). Streaming matters because tool calls can begin executing before the model finishes generating, saving significant time on multi-tool turns.
+
+> **4. The Tool Executor.** When the model requests a tool call, the executor parses it, validates it, and runs it. If multiple tool calls arrive in one response, safe ones (reads, searches) can run in parallel. Unsafe ones (writes, shell commands) run one at a time. Results are appended to the conversation for the next turn.
+
+The prompt is built. Both systems fire it at their respective APIs. Now they wait for tokens.
+
+### Decision 6: Streaming Transport
+
+How do tokens get from the API to the CLI? The two systems made different bets.
+
+Codex opens a persistent WebSocket connection on the first request and reuses it across turns. A routing header pins the client to the server instance holding its cached state, so every turn hits a warm cache. When the WebSocket fails, a sticky flag flips the session to HTTP server-sent events for all remaining turns. Two transports, preference-ordered, with automatic degradation.
+
+Claude Code uses HTTP server-sent events for every request. Each turn opens a new connection, receives events, and closes. No persistent connection, no routing affinity, no fallback logic needed because there's only one transport to fail.
+
+<CodeComparison client:visible
+  codex={`// Codex: WebSocket with HTTP fallback
+conn = get_or_create_websocket()       // reuse across turns
+conn.route_to = "same_server"          // sticky routing for warm cache
+response = conn.send(prompt)
+
+on_websocket_failure:
+  disable_websockets = true            // sticky flag
+  response = http_sse(prompt)          // all future turns use SSE`}
+  claude={`// Claude Code: HTTP SSE only
+response = http_post(prompt, stream=true)
+for event in response.sse_events:
+  yield process(event)
+// connection closes, next turn opens a new one`}
+/>
+
+<Verdict>
+  <p>WebSocket gives Codex lower latency and session affinity. The persistent connection avoids TCP+TLS handshake on every turn, and sticky routing keeps the client pinned to warm server-side caches. SSE is simpler and more firewall-friendly. For a CLI tool running on developer machines behind corporate proxies and VPNs, SSE is the pragmatic choice. WebSocket pays off at scale or in IDE integrations where connection lifetime matches editor session lifetime. If you're building an agent, start with SSE. Add WebSocket when latency profiling shows the handshake is your bottleneck.</p>
+</Verdict>
+
+### Decision 7: Streaming Tool Execution
+
+Both systems figured out the same optimization independently: start executing tools before the LLM finishes generating.
+
+When a model produces multiple tool calls in one response, the naive approach waits for the full response, then executes tools sequentially. That wastes time twice: you wait for later tool calls while earlier ones could already be running, and you execute them one at a time when many are independent.
+
+Codex starts each tool call as a background task the moment it arrives. The stream keeps processing while tools run. When the stream ends, it collects results from all in-flight tasks.
+
+Claude Code adds a safety layer. Each tool declares whether it's safe to run concurrently. Read-only tools (file reads, searches) run in parallel. Write tools (shell, file edits) get exclusive access. Results come back in the order tools were requested regardless of execution order.
+
+<CodeComparison client:visible
+  codex={`// Codex: fire and collect
+for event in stream:
+  if event.is_tool_call:
+    futures.add(execute(event))    // start immediately
+  if event.is_text:
+    display(event)                 // stream to terminal
+results = wait_all(futures)        // collect after stream ends`}
+  claude={`// Claude Code: concurrent reads, serial writes
+for event in stream:
+  if event.is_tool_call:
+    if tool.is_read_only:
+      run_concurrent(event)        // reads overlap safely
+    else:
+      run_serial(event)            // writes get exclusive access
+  if event.is_text:
+    display(event)
+// results emitted in request order`}
+/>
+
+<Verdict label="What we'd steal">
+  <p>Claude Code's approach is the better design. Tagging each tool as concurrent-safe or not makes the safety contract explicit rather than hoping all tools are safe to parallelize. A file read and a code search can overlap. Two shell commands writing to the same file cannot. Codex treats all tools equally and relies on its sandbox to limit blast radius. If you're building an agent, add a concurrency-safe flag to each tool definition. It's one boolean per tool, and it prevents a class of race conditions that sandboxing alone won't catch.</p>
+</Verdict>
+
+<DeepDive title="Context Window Management" hook="one strategy vs. five layered strategies">
+
+When conversations get long, both systems need to compress. This is where they diverge most sharply.
+
+A model with a 200K token window can see at most 200K tokens of conversation. In a long coding session with tool calls returning hundreds of lines of code, you hit that wall fast.
+
+**Codex: one strategy, applied when needed.**
+
+When token usage crosses a threshold, Codex sends the entire conversation to the model with instructions to summarize it. The model returns a compressed version. Codex replaces the full history with that summary plus recent messages. If the conversation is so large that even the summarization prompt exceeds the window, it trims messages from the front until it fits.
+
+**Claude Code: five strategies, cheapest first.**
+
+Before every API call, Claude Code runs up to four compaction passes. Each one is cheaper than the next.
+
+1. **Drop oldest messages.** No LLM call. Free.
+2. **Evict old tool results.** Keep the record that a search happened and what it searched for. Drop the raw output. The model rarely needs grep results from fifteen turns ago, but it benefits from knowing the grep happened.
+3. **Group old exchanges.** Collapse related tool-call/result pairs into compact summaries. Still no LLM call.
+4. **LLM summarization.** Same as Codex. Full model pass. Fires only when cheap options are exhausted. Has a circuit breaker: after 3 consecutive failures, it stops trying.
+5. **Reactive fallback.** If the API returns a "prompt too long" error despite all proactive measures, summarize and retry.
+
+<CodeComparison client:visible
+  codex={`// Codex: summarize when over limit
+if tokens > compact_threshold:
+  summary = ask_model("summarize this conversation")
+  if summary_too_large:
+    drop_oldest_messages()           // trim until it fits
+  history = summary + recent_messages`}
+  claude={`// Claude Code: five strategies, cheapest first
+drop_oldest_messages()               // 1. free
+evict_old_tool_results()             // 2. free, keeps action history
+collapse_related_exchanges()         // 3. free, groups old pairs
+if still_over_limit:
+  summary = ask_model("summarize")   // 4. expensive, circuit-breaker
+on_api_error("prompt_too_long"):
+  reactive_summarize_and_retry()     // 5. last resort`}
+/>
+
+Claude Code's layered approach is the clear winner. Dropping messages and evicting old tool outputs handle most context pressure without spending a single token on summarization. Evicting tool results while keeping the tool-call record is the key insight: the model preserves its action history at a fraction of the token cost.
+
+Codex's single-strategy approach is simpler to understand and debug. But it's expensive when it fires, and it fires as all-or-nothing. There's no gradual degradation.
+
+</DeepDive>
+
+<Verdict label="What we'd steal">
+  <p>Start with cheap compaction. Drop old messages first. Evict stale tool outputs second. Only call the model for summarization when you have to, and put a circuit breaker on it. Three consecutive summarization failures means the session is too far gone for the model to help. The cheapest LLM call is the one you never make.</p>
+</Verdict>

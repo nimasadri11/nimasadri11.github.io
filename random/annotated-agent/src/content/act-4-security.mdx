@@ -1,0 +1,103 @@
+import CodeComparison from '../components/CodeComparison.tsx';
+import Verdict from '../components/Verdict.astro';
+import DeepDive from '../components/DeepDive.astro';
+
+## Act 4: The Security Layer
+
+> **5. The Security Layer.** Before executing any tool call, the agent must decide: is this safe? Two philosophies dominate. Containment runs the tool inside a sandbox that restricts what it can access. The tool executes, but within walls. Gating asks for permission before the tool runs. If denied, the tool never executes. Both approaches need an escalation path when the default answer is wrong.
+
+If you're building an agent that runs code on someone's machine, this is THE decision. Get security wrong and you've built malware with a chat interface. Both systems take security seriously. They disagree about where to put the wall.
+
+### Decision 8: Security Philosophy
+
+This is the widest philosophical gap between the two systems.
+
+Codex chose containment. Every tool call runs inside a platform-native sandbox. On macOS, that means a deny-by-default app sandbox policy that selectively allows specific file and process operations. On Linux, filesystem namespacing isolates the process and syscall filtering restricts what it can do at the kernel level. The sandbox starts locked down and opens only what the task needs. If the sandbox blocks something the model requires, the system asks the user whether to retry without the sandbox. Sandbox first, permission second.
+
+Claude Code chose gating. Every tool call goes through a layered permission check before it runs. Deny rules fire first (absolute blocks). Then ask rules (require confirmation). Then tool-specific safety checks. Then mode-based policies that can auto-approve or auto-deny. If nothing matched, the default is "ask the user." The tool never runs until it clears the stack. Claude Code supports an optional sandbox for shell commands, but the permission system is the primary defense.
+
+<CodeComparison client:visible
+  codex={`// Codex: Containment
+sandbox = create_sandbox(allow=[cwd, tmp])
+result = sandbox.run(tool_call)
+if sandbox.blocked:
+  ask_user("Allow without sandbox?")
+  if approved: result = run_unsandboxed(tool_call)`}
+  claude={`// Claude Code: Gating
+permission = check_rules(tool_call)
+if permission == "deny": return blocked
+if permission == "ask":
+  approved = prompt_user(tool_call)
+  if not approved: return blocked
+result = execute(tool_call)`}
+/>
+
+<Verdict>
+  <p>If your agent runs unattended (CI, background tasks), sandbox first. The sandbox catches things you didn't think to write rules for: novel attack vectors, shell escapes, commands that look safe but touch unexpected paths. If a human is watching, gate first. The permission system avoids the fatigue of constant sandbox escalation prompts. Both have real failure modes. Sandboxing leads to escalation fatigue: users start rubber-stamping "retry without sandbox?" prompts. Permissions lead to over-broad rules: users grant allow-all to stop the prompts, and now there's no barrier at all. Pick sandboxing for autonomous use. Pick gating for interactive use.</p>
+</Verdict>
+
+### Decision 9: LLM-as-Judge
+
+Both systems use a second LLM to automate the approve/deny decision. The implementations sit at different points on the speed-vs-thoroughness spectrum.
+
+Codex uses a dedicated reviewer model. A separate LLM session receives a compact transcript (recent context, capped to prevent runaway costs) and the specific action under review. It returns a risk score from 0 to 100. Below 80, the action is approved. The entire review has a 90-second timeout. On any failure, timeout, or malformed output, the score defaults to 100, which denies the action. It fails closed, every time. The reviewer is opt-in only.
+
+Claude Code uses a small, fast classifier. When the permission mode is "auto" and a tool call would normally prompt the user, the classifier fires. It returns a binary allow/deny decision. Two fast paths skip the classifier entirely for common safe operations (reducing API calls and latency). If the classifier denies three consecutive actions, the system falls back to asking the human. Any successful tool use resets the counter. The classifier is on by default in auto mode.
+
+<CodeComparison client:visible
+  codex={`// Codex: Dedicated reviewer
+risk = reviewer_model.score(transcript, action)
+if risk < 80: approve()
+else: deny()
+// 90s timeout, fails closed`}
+  claude={`// Claude Code: Inline classifier
+decision = classifier.evaluate(recent_context, action)
+if decision == "allow": approve()
+else:
+  denial_count += 1
+  if denial_count > 3: ask_human()  // circuit breaker`}
+/>
+
+<Verdict>
+  <p>The reviewer is more thorough. A dedicated session, a numeric risk score, a 90-second deliberation window, and a hard fail-closed policy. The classifier is faster and cheaper. Two fast paths avoid the API call entirely for common operations, and binary allow/deny keeps latency low. For autonomous long-running agents, invest in a reviewer. For interactive use where a human is waiting, a fast classifier with a circuit breaker is the right call.</p>
+</Verdict>
+
+### Decision 10: Approval Caching
+
+Both systems cache approvals to avoid re-prompting for the same action. The mechanisms differ in precision vs. flexibility.
+
+Codex caches by exact command. Each approved action is serialized and stored as a key. On subsequent requests, only an exact match skips the prompt. For operations that touch multiple files, every target must already be approved before the cache applies. No partial approvals sneak through.
+
+Claude Code caches by pattern rules. When a user approves an action, it becomes a permission rule that can use globs. A single rule like "allow all git commands" covers `git status`, `git diff`, and `git commit`. Rules persist across sessions in a settings file, or scope to the current session depending on the user's choice.
+
+<Verdict>
+  <p>Rules are more flexible. Start with exact-match caching and add patterns when users complain about repetitive prompts. Exact-match is safer for audit trails and security-critical environments. Patterns are better for daily interactive use. If you pick patterns, make sure users can see what they've granted. A glob that matches more than intended is an invisible hole in your security model.</p>
+</Verdict>
+
+<DeepDive title="The Sandbox Stack" hook="platform-native containment on macOS, Linux, and Windows">
+
+Codex's sandboxing uses the kernel's own enforcement mechanisms on each platform. No emulation, no userspace workarounds.
+
+**macOS: App Sandbox.** A deny-by-default policy selectively allows process execution, signal delivery, specific system information reads, and PTY operations. File access is parameterized: readable root paths and writable root paths are passed as parameters to the policy template, so the same template works across different working directories. The sandbox binary is invoked by absolute path to defend against PATH injection.
+
+**Linux: Namespace + Syscall Filtering.** A helper binary combines three mechanisms. Filesystem namespacing isolates the process's view of the filesystem. Kernel-level path access rules enforce which directories are readable and writable. Syscall filtering restricts which system calls the process can make. Flags handle older kernel compatibility and proxy-aware network access.
+
+**Windows: Restricted Tokens.** A restricted-token sandbox limits what the spawned process can touch. This is the least mature of the three implementations.
+
+**Escalation.** When a sandboxed command fails, the system checks whether the tool opts into escalation and whether the approval policy allows unsandboxed retries. Under strict policies, sandbox denials are final. Under permissive policies, the system asks the user and retries without the sandbox.
+
+</DeepDive>
+
+<DeepDive title="The Permission Stack" hook="layered rules from six sources">
+
+Claude Code's permission system evaluates rules from multiple sources in a fixed priority order.
+
+**Rule sources.** Permissions come from organization-managed policies, feature flags, project settings (checked into the repo), local project overrides, user-global settings, CLI flags, in-session commands, and one-shot session approvals.
+
+**Rule types.** Each rule targets a specific tool, optionally with an argument pattern (e.g., "allow all git commands"). Rules have three behaviors: allow, deny, or ask.
+
+**Evaluation order.** Deny rules fire first and are absolute. Ask rules fire next. Tool-specific safety checks run third. Mode-based policies fire fourth (auto mode can bypass prompts). Allow rules fire fifth. Anything unresolved defaults to "ask."
+
+**Bypass-immune paths.** Certain targets cannot be overridden by any rule or mode. Writes to version control internals, agent config files, IDE settings, and shell config files always prompt the user, regardless of auto-mode, bypass mode, or allow rules. These are the system's non-negotiable safety checks.
+
+</DeepDive>

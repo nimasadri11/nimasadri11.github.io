@@ -1,0 +1,106 @@
+import DecisionTable from '../components/DecisionTable.tsx';
+
+
+## The Implicit Spec
+
+There is no RFC for agent CLIs. No one published "Attention Is All You Need" for tool-using agents. But two of the largest AI labs built the same system from scratch, and the architecture they converged on tells us something about what an agent CLI *has* to be.
+
+OpenAI shipped Codex. Anthropic shipped Claude Code. The teams never coordinated. They started from different languages, different models, different design philosophies. They arrived at the same architecture.
+
+This post presents that architecture as if it were a paper: the spec nobody wrote down but both teams implemented. Each section blockquotes a piece of the spec, then annotates it with real code from both systems. Like the Annotated Transformer, but for agent tooling, and with two implementations instead of one.
+
+## The Architecture
+
+Every agent CLI is a loop. Take a natural language instruction, send it to a language model, execute the tool calls the model requests, repeat until the task is done. The interesting engineering is everything around that loop. Eleven components hold it together.
+
+
+> **1. The Session.** An agent CLI must maintain a stateful session that outlives any single model call. The session owns the conversation history, tracks configuration (which model, which tools, which safety rules), and provides the coordination point between the user interface, the model, and the tool executor. Without a session abstraction, there is no way to persist context across turns or recover from failures mid-task.
+
+The session is the spine. Everything else hangs off it.
+
+> **2. The Prompt Builder.** Before each model call, the system must assemble a prompt from multiple sources: system instructions that define the agent's behavior, tool definitions that tell the model what it can do, conversation history from previous turns, and any user-provided context like file contents or project rules. The prompt builder's job is to merge these sources into a single payload that fits within the model's context window, applying caching strategies to minimize redundant tokens.
+
+This is where the two systems diverge hardest. Same inputs, very different assembly strategies.
+
+> **3. The Stream.** The system must call the model's API and process the response as a stream, not a batch. Streaming lets the user see progress in real time and, more importantly, lets the tool executor begin parsing tool calls before the full response arrives. The stream must handle connection failures, rate limits, and partial responses without losing state.
+
+Streaming is table stakes for UX. But streaming *with tool parsing* is where the real complexity lives.
+
+> **4. The Tool Executor.** When the model's response contains tool calls, the executor must parse them, dispatch each to the appropriate handler, and return results to the conversation. Some tool calls are independent and can run in parallel. Others depend on shared state and must be serialized. The executor must handle tool failures gracefully, returning useful error messages to the model rather than crashing the session.
+
+The tool executor is the agent's hands. Get it wrong and the model can't do anything useful.
+
+> **5. The Security Layer.** Every tool call is a potential code execution on the user's machine. The security layer must decide, for each call, whether to allow it, deny it, or ask the user for permission. This requires a policy system flexible enough to express rules like "allow all file reads, but ask before any shell command that modifies files." The security layer must be fast enough that it doesn't break the flow of an interactive session.
+
+This is where the philosophical split runs deepest. Sandbox the environment, or gate each action?
+
+> **6. The Loop Controller.** The outer loop must decide, after each model response, whether to continue or stop. It must detect when the model has finished its task, when it's stuck in a cycle, when the context window is about to overflow, and when an unrecoverable error has occurred. It must handle recovery strategies: compacting the conversation, falling back to a different model, or retrying with backoff.
+
+The loop controller is the least glamorous component and the one that determines whether the agent finishes the job or dies halfway through.
+
+> **7. The Terminal UI.** An agent CLI needs to render streaming text, display code diffs, show approval dialogs, and accept user input, all in a terminal. Two paradigms dominate: immediate-mode rendering (draw every frame from state) and retained-mode rendering (describe what the UI should look like, let a framework diff and patch).
+
+The terminal is the oldest interface in computing, and it turns out to be a hard rendering target when you're streaming markdown at hundreds of tokens per second.
+
+> **8. The Extension Layer.** A useful agent CLI must be extensible beyond what its creators anticipated. Users need to hook into the agent's lifecycle, connect external tool servers via MCP, define reusable behaviors as skills, and install third-party plugins.
+
+The extension surface is what separates a tool from a platform.
+
+> **9. The Swarm.** When a task is too large for one agent, the system needs to coordinate multiple agents working in parallel. This requires decisions about communication topology, permission delegation, physical isolation, and background task management.
+
+Spawning one child agent is Act 5. Running five in parallel, each needing permissions and producing output, is a different problem entirely.
+
+> **10. The Platform Layer.** Beyond the core loop, each team built features the other didn't. These unique capabilities reveal each team's theory of what an agent CLI should become.
+
+Codex pushed downward toward the operating system. Claude Code pushed outward toward the developer's workflow. Both are right about the future.
+
+> **11. The Memory Layer.** A stateless agent loop forgets everything between sessions. A useful agent remembers: what the user prefers, what the codebase looks like, what worked last time.
+
+An agent that forgets everything between sessions is a fancy autocomplete. Memory is what separates an agent that learns from one that merely executes.
+
+## The Thirty-Six Decisions
+
+Within each component, the two systems made different bets. Here are the thirty-six decisions where they diverged.
+
+<DecisionTable client:visible decisions={[
+  { number: 1, name: "Runtime", codex: "Rust/tokio native binary", claude: "TypeScript/Bun bundle", anchor: "act-1" },
+  { number: 2, name: "Concurrency Model", codex: "Actor pattern (channels + message pump)", claude: "Async generators (yield + backpressure)", anchor: "act-1" },
+  { number: 3, name: "State Management", codex: "Mutex-guarded SessionState", claude: "Immutable AppState store", anchor: "act-1" },
+  { number: 4, name: "Prompt Caching", codex: "Server-side response chaining", claude: "Client-side cache boundary splitting", anchor: "act-2" },
+  { number: 5, name: "Tool Taxonomy", codex: "Few powerful tools (~10)", claude: "Many specialized tools (~30+)", anchor: "act-2" },
+  { number: 6, name: "Streaming Transport", codex: "WebSocket + HTTP SSE fallback", claude: "HTTP SSE via SDK", anchor: "act-3" },
+  { number: 7, name: "Streaming Tool Exec", codex: "FuturesOrdered collection", claude: "StreamingToolExecutor partitioning", anchor: "act-3" },
+  { number: 8, name: "Security Philosophy", codex: "Sandbox-first (seatbelt, bubblewrap, seccomp)", claude: "Permission-first (rules, modes, classifier)", anchor: "act-4" },
+  { number: 9, name: "LLM-as-Judge", codex: "Guardian reviewer (dedicated model, risk score)", claude: "Transcript classifier (small model, auto mode)", anchor: "act-4" },
+  { number: 10, name: "Approval Caching", codex: "Serialized command key", claude: "Rule pattern matching", anchor: "act-4" },
+  { number: 11, name: "Multi-Agent", codex: "Lightweight child threads", claude: "Rich orchestration (teams, tasks, custom agents)", anchor: "act-5" },
+  { number: 12, name: "Error Recovery", codex: "Backoff + transport fallback", claude: "Multi-strategy (recovery, compaction, model fallback)", anchor: "act-5" },
+  { number: 13, name: "Loop Continuation", codex: "Proactive compaction at token threshold", claude: "Reactive compaction on API error", anchor: "act-5" },
+  { number: 14, name: "UI Framework", codex: "Immediate-mode (ratatui, 120fps draw loop)", claude: "Declarative (React + custom Ink fork)", anchor: "act-6" },
+  { number: 15, name: "Streaming Text Display", codex: "Committed/active cell split", claude: "Memoized React component tree", anchor: "act-6" },
+  { number: 16, name: "Rich Content Rendering", codex: "Adaptive color palettes (truecolor/256/16)", claude: "Custom markdown renderer + full vim mode", anchor: "act-6" },
+  { number: 17, name: "Hooks", codex: "Shell commands, parallel, gate-only", claude: "Async generators, in-process, can mutate", anchor: "act-7" },
+  { number: 18, name: "MCP", codex: "Both client and server", claude: "Client only, normalized to native tools", anchor: "act-7" },
+  { number: 19, name: "Skills", codex: "Markdown files injected into prompt", claude: "Tool calls with on-demand loading", anchor: "act-7" },
+  { number: 20, name: "Agent Topology", codex: "Strict parent-child tree", claude: "Flexible teams with lateral messaging", anchor: "act-8" },
+  { number: 21, name: "Permission Delegation", codex: "Inherited policy, direct prompts", claude: "Leader-mediated mailbox queue", anchor: "act-8" },
+  { number: 22, name: "Background Execution", codex: "Local tree + remote task queue", claude: "Unified registry with cron scheduler", anchor: "act-8" },
+  { number: 23, name: "Network Proxy", codex: "MITM proxy with per-domain HTTP policy", claude: "OS-level network blocking only", anchor: "act-9" },
+  { number: 24, name: "Exec Policy DSL", codex: "Starlark policy language with path resolution", claude: "JSON permission rules in config", anchor: "act-9" },
+  { number: 25, name: "App Server", codex: "JSON-RPC server (stdio, WebSocket, remote)", claude: "Embedded subprocess per environment", anchor: "act-9" },
+  { number: 26, name: "Local Model Support", codex: "Dedicated LM Studio + Ollama clients", claude: "API providers only", anchor: "act-9" },
+  { number: 27, name: "Codex as MCP Server", codex: "Full MCP server mode", claude: "Not implemented", anchor: "act-9" },
+  { number: 28, name: "LSP Integration", codex: "Grep and file reading", claude: "Full LSP tool (go-to-def, references, hover)", anchor: "act-9" },
+  { number: 29, name: "Git Worktree Isolation", codex: "Shared working directory", claude: "Per-agent worktrees with symlinked deps", anchor: "act-9" },
+  { number: 30, name: "Computer Use", codex: "Terminal only", claude: "Desktop automation (screenshot, mouse, keyboard)", anchor: "act-9" },
+  { number: 31, name: "The Bridge", codex: "App server remote control transport", claude: "Polling bridge for web/mobile access", anchor: "act-9" },
+  { number: 32, name: "Vim Mode and Rebindable Keys", codex: "Fixed key mappings", claude: "Full vim state machine + chord keybindings", anchor: "act-9" },
+  { number: 33, name: "Session Memory", codex: "Append-only JSONL + SQLite index", claude: "Layered transcripts + session memory subagent", anchor: "act-10" },
+  { number: 34, name: "Cross-Session Memory", codex: "Implicit via session files", claude: "Active file-based memory with semantic retrieval", anchor: "act-10" },
+  { number: 35, name: "Voice Input", codex: "Bidirectional realtime voice", claude: "Push-to-talk speech-to-text", anchor: "act-10" },
+  { number: 36, name: "Plan Mode", codex: "User-controlled mode cycling", claude: "Agent-initiated with permission dialog", anchor: "act-10" }
+]} />
+
+## How to Read This Post
+
+Ten acts, each covering a component of the architecture. Acts 1 through 5 cover the core loop: bootstrapping a session, building prompts, streaming responses, gating tool calls, and controlling the outer loop. Acts 6 through 10 cover the surrounding systems: terminal rendering, extensibility, multi-agent coordination, platform-specific features each team built that the other didn't, and memory that persists across sessions. Each act shows pseudocode from both systems and ends with verdicts on what we'd steal from each. Start at Act 1 or jump to any decision that interests you.

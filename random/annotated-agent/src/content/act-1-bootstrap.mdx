@@ -1,0 +1,96 @@
+import CodeComparison from '../components/CodeComparison.tsx';
+import Verdict from '../components/Verdict.astro';
+import DeepDive from '../components/DeepDive.astro';
+
+## Act 1: The Session
+
+> **1. The Session.** An agent CLI maintains a session: the conversation history, the active configuration, and enough state to resume if interrupted. The session is the agent's working memory. It must be safe to read from multiple places (the UI thread, tool executors, background tasks) without corruption.
+
+If you're building an agent, the session is the first thing you design. It determines your concurrency story, your persistence story, and your configuration story. Get it wrong and you fight it forever. Every other component (tool execution, streaming, approval flows) hangs off decisions you make here.
+
+The spec leaves three things open: what runtime hosts the session, how concurrent access works, and how state gets updated. Codex and Claude Code made different calls on all three.
+
+### Decision 1: Runtime
+
+The spec doesn't prescribe a language. Codex chose Rust: a compiled native binary per platform, with tokio as the async runtime. An npm package acts as a thin shim that detects your OS and spawns the right binary. Claude Code chose TypeScript: a single JavaScript file bundled and executed by Bun. One compiles for six targets. The other ships one file everywhere.
+
+<CodeComparison client:visible
+  codex={`// Codex
+detect_platform()          // npm shim finds native binary
+spawn_native_binary()      // Rust binary starts
+init_tokio_runtime()       // async runtime boots
+parse_args_and_dispatch()  // TUI or exec mode`}
+  claude={`// Claude Code
+check_fast_path_args()     // --version, --help exit early
+load_config_and_connect()  // settings + API preconnect
+render_terminal_ui()       // React/Ink component tree`}
+/>
+
+Codex starts in milliseconds and uses ~15MB resident. Claude Code's Bun process evaluates a module graph and settles around ~80MB before doing anything useful. But Claude Code does something Codex doesn't: it opens a TCP+TLS connection to the API during initialization, so the connection is warm by the time the first request fires ~100ms later.
+
+<Verdict>
+  <p>Rust wins on cold start and memory. TypeScript wins on iteration speed and contributor accessibility. For a tool that lives on developer machines (not in a latency-sensitive data path), iteration speed matters more. If you're building an agent CLI, start with the language your team ships fastest in. Optimize the binary later.</p>
+</Verdict>
+
+### Decision 2: Concurrency
+
+The two systems use opposite patterns to manage the flow between the user, the LLM, and tool execution.
+
+Codex uses an actor model. The session spawns a background loop and communicates through channels. The UI sends messages in, the loop processes them, and events come back out. The two sides never share mutable state. Claude Code uses an async generator. The query function yields events one at a time. The caller pulls at its own pace. Backpressure is structural: the generator pauses at each yield until the caller asks for more.
+
+<CodeComparison client:visible
+  codex={`// Codex: Actor
+session = spawn_background_loop()
+session.send(UserInput("fix the bug"))  // fire message
+event = session.receive()               // wait for response
+// session loop handles everything internally`}
+  claude={`// Claude Code: Generator
+for event in query(messages):  // pull-based
+  render(event)                // caller controls pace
+  if event.is_tool_result:
+    continue                   // loop continues`}
+/>
+
+The actor pattern creates a hard boundary. The Codex TUI and core can evolve independently. The channel makes it possible to run them in separate processes, which the IDE integration mode does. The generator pattern trades that boundary for composability. You can wrap, filter, or chain generators in one line. Doing the equivalent with actors means wiring up another channel pair.
+
+<Verdict>
+  <p>If your agent needs to support multiple frontends (CLI, IDE plugin, remote sessions), actors pay off. The channel boundary becomes a process boundary for free. If your agent is a single-process CLI, generators are simpler and compose better. Pick the pattern that matches your deployment surface, not your concurrency preference.</p>
+</Verdict>
+
+### Decision 3: State
+
+One uses a lock. The other uses immutability.
+
+Codex puts session state behind a mutex. Any code that needs to read or write state acquires the lock, mutates in place, and releases. Rust's ownership system enforces that you hold the lock before touching the data. Claude Code treats state as immutable. Updates go through a function that takes the previous state, returns a new object, and notifies subscribers. No mutation, no locks, no races.
+
+<CodeComparison client:visible
+  codex={`// Codex: Mutex
+state = session.lock()     // acquire exclusive access
+state.history.push(msg)    // mutate in place
+// lock released on drop`}
+  claude={`// Claude Code: Immutable
+update(prev => ({
+  ...prev,                  // copy everything
+  messages: [...prev.messages, msg]  // new array
+}))`}
+/>
+
+The mutex approach is more efficient at runtime. No object spreading, no garbage collection pressure from short-lived copies. But it's harder to debug: you need to reason about lock ordering, and a deadlock in an async context freezes the session. The immutable store is impossible to deadlock. Every state transition produces a new object, which gives you free undo semantics and time-travel debugging.
+
+<Verdict>
+  <p>For a CLI where state updates happen at human speed, allocation cost is irrelevant. The immutable pattern is easier to reason about and composes with React's rendering model. If you're building an agent in a GC'd language, use immutable state. If you're in Rust, the mutex is idiomatic and the compiler keeps you honest. Match the pattern to the language's strengths.</p>
+</Verdict>
+
+<DeepDive title="Configuration" hook="TOML layers vs JSON layers vs persistent memory">
+
+Both systems use layered configuration: multiple sources merged in priority order, with enterprise administrators able to lock down settings users can't override.
+
+**Codex** uses TOML. The config loader builds a stack of layers (user config, project config, CLI flags, managed config, MDM preferences on macOS) and merges them with higher-precedence layers winning. It tracks per-key origins so the UI can show "this setting came from your org's managed config."
+
+**Claude Code** uses JSON. The precedence stack runs from user settings through project settings, local settings, CLI flags, and policy settings. Policy wins over everything, including CLI flags, so an enterprise admin can enforce tool restrictions that no user can override.
+
+For project instructions, the systems diverge. Codex scans for `AGENTS.md` files from project root to the current directory and concatenates them (capped at 32KB). Claude Code scans for `CLAUDE.md` files with an `@include` directive for composing instruction files. It also has a persistent auto-memory system: Claude Code remembers learned preferences across sessions by writing to `~/.claude/`.
+
+The key difference: Codex treats instructions as static documents discovered at session start. Claude Code treats them as a live system with includes, hooks, and memory that evolves over time.
+
+</DeepDive>

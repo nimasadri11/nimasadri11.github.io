@@ -1,0 +1,67 @@
+import DecisionTable from '../components/DecisionTable.tsx';
+
+## The Thirty-Six Decisions
+
+<DecisionTable client:visible showVerdicts={true} decisions={[
+  { number: 1, name: "Runtime", codex: "Rust/tokio native binary", claude: "TypeScript/Bun bundle", verdict: "Use the language your team iterates fastest in", anchor: "act-1" },
+  { number: 2, name: "Concurrency Model", codex: "Actor pattern (channels + message pump)", claude: "Async generators (yield + backpressure)", verdict: "Generators unless you need multi-transport", anchor: "act-1" },
+  { number: 3, name: "State Management", codex: "Mutex-guarded SessionState", claude: "Immutable AppState store", verdict: "Immutable by default", anchor: "act-1" },
+  { number: 4, name: "Prompt Caching", codex: "Server-side response chaining", claude: "Client-side cache boundary splitting", verdict: "Start client-side, add server-side for latency", anchor: "act-2" },
+  { number: 5, name: "Tool Taxonomy", codex: "Few powerful tools (~10)", claude: "Many specialized tools (~30+)", verdict: "Few tools plus a shell escape hatch", anchor: "act-2" },
+  { number: 6, name: "Streaming Transport", codex: "WebSocket + HTTP SSE fallback", claude: "HTTP SSE via SDK", verdict: "SSE unless you need session affinity", anchor: "act-3" },
+  { number: 7, name: "Streaming Tool Exec", codex: "FuturesOrdered collection", claude: "StreamingToolExecutor partitioning", verdict: "Flag each tool as concurrent-safe or not", anchor: "act-3" },
+  { number: 8, name: "Security Philosophy", codex: "Sandbox-first (seatbelt, bubblewrap, seccomp)", claude: "Permission-first (rules, modes, classifier)", verdict: "Sandbox for unattended, permissions for interactive", anchor: "act-4" },
+  { number: 9, name: "LLM-as-Judge", codex: "Guardian reviewer (dedicated model, risk score)", claude: "Transcript classifier (small model, auto mode)", verdict: "Reviewer for autonomous, classifier for interactive", anchor: "act-4" },
+  { number: 10, name: "Approval Caching", codex: "Serialized command key", claude: "Rule pattern matching", verdict: "Exact match first, patterns when users complain", anchor: "act-4" },
+  { number: 11, name: "Multi-Agent", codex: "Lightweight child threads", claude: "Rich orchestration (teams, tasks, custom agents)", verdict: "Spawn-and-wait; add richness when you outgrow it", anchor: "act-5" },
+  { number: 12, name: "Error Recovery", codex: "Backoff + transport fallback", claude: "Multi-strategy (recovery, compaction, model fallback)", verdict: "Model downgrade under load is free responsiveness", anchor: "act-5" },
+  { number: 13, name: "Loop Continuation", codex: "Proactive compaction at token threshold", claude: "Reactive compaction on API error", verdict: "Proactive if compaction is cheap, reactive if expensive", anchor: "act-5" },
+  { number: 14, name: "UI Framework", codex: "Immediate-mode (ratatui, 120fps draw loop)", claude: "Declarative (React + custom Ink fork)", verdict: "Immediate-mode if simple; component framework at scale", anchor: "act-6" },
+  { number: 15, name: "Streaming Text Display", codex: "Committed/active cell split", claude: "Memoized React component tree", verdict: "Committed/active split is clean in any framework", anchor: "act-6" },
+  { number: 16, name: "Rich Content Rendering", codex: "Adaptive color palettes (truecolor/256/16)", claude: "Custom markdown renderer + full vim mode", verdict: "Detect terminal color depth; do vim properly or not at all", anchor: "act-6" },
+  { number: 17, name: "Hooks", codex: "Shell commands, parallel, gate-only", claude: "Async generators, in-process, can mutate", verdict: "Shell gatekeepers first, add mutation when users ask", anchor: "act-7" },
+  { number: 18, name: "MCP", codex: "Both client and server", claude: "Client only, normalized to native tools", verdict: "Be both client and server for composability", anchor: "act-7" },
+  { number: 19, name: "Skills", codex: "Markdown files injected into prompt", claude: "Tool calls with on-demand loading", verdict: "Markdown for definition, model-driven for invocation", anchor: "act-7" },
+  { number: 20, name: "Agent Topology", codex: "Strict parent-child tree", claude: "Flexible teams with lateral messaging", verdict: "Start with trees; graduate to teams for lateral work", anchor: "act-8" },
+  { number: 21, name: "Permission Delegation", codex: "Inherited policy, direct prompts", claude: "Leader-mediated mailbox queue", verdict: "Leader-mediated for interactive, inherited for autonomous", anchor: "act-8" },
+  { number: 22, name: "Background Execution", codex: "Local tree + remote task queue", claude: "Unified registry with cron scheduler", verdict: "Unified registry; cron for proactive agent behavior", anchor: "act-8" },
+  { number: 23, name: "Network Proxy", codex: "MITM proxy with per-domain HTTP policy", claude: "OS-level network blocking only", verdict: "MITM for unattended agents, OS-level for interactive", anchor: "act-9" },
+  { number: 24, name: "Exec Policy DSL", codex: "Starlark policy language with path resolution", claude: "JSON permission rules in config", verdict: "Real expression language pays for itself past simple rules", anchor: "act-9" },
+  { number: 25, name: "App Server", codex: "JSON-RPC server (stdio, WebSocket, remote)", claude: "Embedded subprocess per environment", verdict: "Server for reach across editors, embed for deep integration", anchor: "act-9" },
+  { number: 26, name: "Local Model Support", codex: "Dedicated LM Studio + Ollama clients", claude: "API providers only", verdict: "Table stakes for model-agnostic agents", anchor: "act-9" },
+  { number: 27, name: "Codex as MCP Server", codex: "Full MCP server mode", claude: "Not implemented", verdict: "Turns the CLI from a tool into a composable building block", anchor: "act-9" },
+  { number: 28, name: "LSP Integration", codex: "Grep and file reading", claude: "Full LSP tool (go-to-def, references, hover)", verdict: "High-leverage; build early for code-focused agents", anchor: "act-9" },
+  { number: 29, name: "Git Worktree Isolation", codex: "Shared working directory", claude: "Per-agent worktrees with symlinked deps", verdict: "Right answer for parallel agent work", anchor: "act-9" },
+  { number: 30, name: "Computer Use", codex: "Terminal only", claude: "Desktop automation (screenshot, mouse, keyboard)", verdict: "Expands the agent beyond terminal to any application", anchor: "act-9" },
+  { number: 31, name: "The Bridge", codex: "App server remote control transport", claude: "Polling bridge for web/mobile access", verdict: "Polling for consumer NAT traversal, server for enterprise", anchor: "act-9" },
+  { number: 32, name: "Vim Mode and Rebindable Keys", codex: "Fixed key mappings", claude: "Full vim state machine + chord keybindings", verdict: "Rebindable keys for everyone; vim for power users", anchor: "act-9" },
+  { number: 33, name: "Session Memory", codex: "Append-only JSONL + SQLite index", claude: "Layered transcripts + session memory subagent", verdict: "JSONL for transcripts; subagent summaries survive compaction", anchor: "act-10" },
+  { number: 34, name: "Cross-Session Memory", codex: "Implicit via session files", claude: "Active file-based memory with semantic retrieval", verdict: "File-based memory with semantic retrieval changes the agent's character", anchor: "act-10" },
+  { number: 35, name: "Voice Input", codex: "Bidirectional realtime voice", claude: "Push-to-talk speech-to-text", verdict: "Push-to-talk first; voice output when users ask", anchor: "act-10" },
+  { number: 36, name: "Plan Mode", codex: "User-controlled mode cycling", claude: "Agent-initiated with permission dialog", verdict: "Agent-initiated with user veto; manual override as fallback", anchor: "act-10" }
+]} />
+
+### The Universal Agent CLI
+
+Some things are not bets. They are requirements. Every agent CLI needs: the loop itself, streaming tool execution, a security gate before tool calls run, layered configuration, session persistence, a terminal UI that handles streaming rich content, an extension surface (hooks, MCP, skills), some form of multi-agent coordination, and memory that persists across sessions. Both systems arrived at all of these independently. That convergence is the spec.
+
+The open questions are where reasonable teams will disagree for years. Sandbox or permissions. Few tools or many. Immediate-mode or declarative UI. Tree topology or flexible teams. Implicit memory or active memory management. Server-side or client-side caching. Proactive or reactive compaction. These choices follow from who your user is, whether anyone is watching, and whether the agent runs once or builds a relationship over weeks. There is no universal answer. Pick the defaults that match your most common session, and make the other mode reachable.
+
+### The Minimum Viable Agent Loop
+
+```
+loop:
+  response = call_model(messages)
+  tool_calls = parse_tools(response)
+  if no tool_calls: return response
+  for call in tool_calls:
+    if not permitted(call): skip
+    result = execute(call)
+    messages.append(result)
+```
+
+Everything else in both codebases exists to make this loop safe, fast, and usable.
+
+### 
+
+Two teams. Same loop. Thirty-six different answers. Build yours.

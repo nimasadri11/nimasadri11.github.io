@@ -1,0 +1,60 @@
+import DecisionTable from '../../components/DecisionTable.tsx';
+
+I spent the past few days reading and understanding the Codex CLI and Claude Code codebases. I found that they converge on the same six-component architecture and disagree on how to implement each component. As these are the most used AI agents in today's world, understanding their design decisions can you give you insight on how to build agentic systems effectively. Also for those that use these tools, understanding how they work can make you more effective at using them.
+
+This post walks through the 23 architectural decisions where they diverged.
+
+Some of what I found was unexpected. Codex's codebase contains a struct called `ClaudeHooksEngine`, named after a competitor's hook system. Claude Code has an unshipped feature that turns the CLI into a persistent daemon with terminal-focus-aware autonomy. Claude Code also ships an animated companion sprite that lives in the terminal and reacts to the agent's work.
+
+
+### The Agent Components
+
+The seven components that make these agentic products are:
+
+> **1. The Prompt & Extensions.** Before the model generates a single token, the agent assembles what it sees: a system prompt, tool definitions, conversation history, and any user-injected context. Users extend the system through hooks, skills, and plugins.
+
+> **2. Context Construction & Management.** What goes into the context at startup, what changes per turn, and what happens when the context fills up. This determines what the model can see and what gets compressed or dropped.
+
+> **3. The Security Layer.** Every tool call is a potential code execution on the user's machine. The security layer decides whether to allow it, deny it, or ask. The two codebases use opposite philosophies: sandbox the environment, or gate each action.
+
+> **4. The Swarm.** When a task is too large for one agent, the system coordinates multiple agents in parallel. This requires decisions about communication topology, permission delegation, and background task management.
+
+> **5. The Stream and Tool Executor.** The agent sends the prompt to the model and receives a streaming response. Some tokens are text, some are tool calls. The executor decides which tools can overlap safely and which need exclusive access.
+
+> **6. The Memory Layer.** A stateless agent loop forgets everything between sessions. The memory layer spans cross-session persistence, automatic consolidation, and planning.
+
+> **7. Voice and Personality.** Beyond text, both systems explored voice input. One team went further, giving the agent a visible companion that reacts to what it's doing.
+
+### The 23 Decisions
+
+Within each component, the two systems made different bets. These are the 23 decisions where they diverged on agent architecture.
+
+<DecisionTable client:visible decisions={[
+  { number: 1, name: "Prompt Caching", codex: "Server-side (sticky routing, response references)", claude: "Client-side (cache boundaries, sorted tools)", anchor: "ch-1" },
+  { number: 2, name: "Tool Taxonomy", codex: "Few powerful tools (~15, shell-centric)", claude: "Many specialized tools (35+, each with guardrails)", anchor: "ch-1" },
+  { number: 3, name: "Approval Caching", codex: "Exact-match command cache", claude: "Glob-pattern permission rules", anchor: "ch-1" },
+  { number: 4, name: "Hooks", codex: "Shell commands (gate only)", claude: "Async generators (gate + transform + inject)", anchor: "ch-1" },
+  { number: 5, name: "Skills", codex: "Markdown files injected into prompt", claude: "Tool-call invocation, on-demand loading", anchor: "ch-1" },
+  { number: 6, name: "Plan Mode", codex: "User-controlled mode cycle", claude: "Agent-initiated mode transition", anchor: "ch-1" },
+  { number: 7, name: "Context Construction", codex: "Diff-based per-turn injection", claude: "Full context + system-reminder deltas", anchor: "ch-2" },
+  { number: 8, name: "Context Compaction", codex: "Single LLM summarization", claude: "5-layer compaction cascade", anchor: "ch-2" },
+  { number: 9, name: "Security Philosophy", codex: "Sandbox-first (seatbelt, bubblewrap, seccomp)", claude: "Permission-first (rules, modes, classifier)", anchor: "ch-3" },
+  { number: 10, name: "LLM-as-Judge", codex: "Guardian reviewer (dedicated model, risk score)", claude: "Transcript classifier (small model, auto mode)", anchor: "ch-3" },
+  { number: 11, name: "Agent Topology", codex: "Tree (parent-child only)", claude: "Flexible teams (any-to-any messaging)", anchor: "ch-4" },
+  { number: 12, name: "Permission Delegation", codex: "Inherited policy, direct prompts", claude: "Leader-mediated mailbox", anchor: "ch-4" },
+  { number: 13, name: "Cron and Proactive Agents", codex: "Cloud task queue", claude: "Local cron scheduler", anchor: "ch-4" },
+  { number: 14, name: "MCP Role", codex: "Client and server", claude: "Client only", anchor: "ch-4" },
+  { number: 15, name: "Streaming Tool Execution", codex: "Fire-and-collect concurrency", claude: "Concurrent/serial partitioning", anchor: "ch-5" },
+  { number: 16, name: "Cross-Session Memory", codex: "Implicit (session files)", claude: "Active (file-based with semantic retrieval)", anchor: "ch-6" },
+  { number: 17, name: "Memory Consolidation", codex: "Automated 2-phase extraction pipeline (behind feature flag)", claude: "Background agent reviews history", anchor: "ch-6" },
+  { number: 18, name: "Voice Input", codex: "Bidirectional realtime", claude: "Push-to-talk transcription", anchor: "ch-7" },
+  { number: 19, name: "Agent Personality", codex: "None", claude: "Companion sprite with animations", anchor: "ch-7" },
+  { number: 20, name: "The Persistent Agent", codex: "No equivalent (Remote Control is connectivity only)", claude: "Local persistent daemon (KAIROS)", anchor: "ch-8" },
+  { number: 21, name: "Communication Channels", codex: "Curated app marketplace via ChatGPT", claude: "MCP notification protocol (Slack, Discord, SMS)", anchor: "ch-8" },
+  { number: 22, name: "Code as Orchestration", codex: "V8 isolate Code Mode", claude: "Standard tool-use protocol", anchor: "ch-8" },
+  { number: 23, name: "Batch Execution", codex: "SpawnCsv fan-out (map-reduce)", claude: "No batch primitive", anchor: "ch-8" },
+]} />
+
+### How to Read This
+
+There are eight chapters. The first seven each cover an agent component. The eighth covers unshipped features that show where both systems are heading. Each chapter shows pseudocode from both systems and ends with our take on which approach is stronger. Start at Chapter 1 or jump to any decision that interests you.

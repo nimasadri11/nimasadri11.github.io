@@ -1,0 +1,103 @@
+import CodeComparison from '../components/CodeComparison.tsx';
+import Verdict from '../components/Verdict.astro';
+import DeepDive from '../components/DeepDive.astro';
+
+## Act 8: The Swarm
+
+> **9. The Swarm.** When a task is too large for one agent, the system needs to coordinate multiple agents working in parallel. This goes beyond spawning a child and waiting for it. Real multi-agent orchestration requires: deciding how agents communicate (message passing vs shared state), how permissions flow (does each agent ask the user, or does a leader decide?), how agents are physically isolated (separate processes? terminals? threads?), and how background work is tracked and surfaced.
+
+Act 5 covered spawning a child agent and waiting for its result. That's the single-threaded version. Real orchestration begins when you need five agents working in parallel, each one potentially needing permission to run commands, each one producing output that someone needs to synthesize. The gap between "spawn one child" and "run a team" is where the hardest coordination problems live.
+
+### Decision 20: Agent Topology
+
+Both systems let agents create other agents. They disagree about how those agents relate to each other.
+
+Codex uses a tree. A parent spawns children. Children can spawn grandchildren. Every message flows parent-to-child or child-to-parent. A configurable depth limit (default unbounded, minimum 1) prevents runaway recursion. Children inherit the parent's configuration and execution policy. The registry tracks all agents in a flat map keyed by thread ID, enforces a max-threads limit across the entire tree, and assigns whimsical nicknames from a word list for display in the TUI. Built-in roles (default, explorer, worker) define what tools and models children get.
+
+Claude Code uses a flexible topology. A leader agent creates a "team" with named members. Any member can message any other member through a file-based mailbox. Three physical backends determine how agents run: tmux panes (visible in the terminal, color-coded borders), iTerm2 native panes, or in-process (invisible, sharing the Node.js runtime and API connections via AsyncLocalStorage). A "coordinator mode" turns the leader into a pure delegator that never calls tools itself. It only spawns workers, sends them messages, and synthesizes results. The coordinator prompt is 370 lines of detailed instructions covering phased workflows, parallelism strategy, and prompt-writing guidance.
+
+<CodeComparison client:visible
+  codex={`// Codex: strict tree
+child = spawn(prompt, role="explorer", depth=2)
+child.send(message)
+result = child.wait()
+// depth limit enforced, max threads enforced
+// communication: parent <-> child only`}
+  claude={`// Claude Code: flexible teams
+team = create_team("auth-fix", backend="tmux")
+team.spawn("researcher", prompt, color="blue")
+team.spawn("implementer", prompt, color="green")
+send_message(to="researcher", "check auth module")
+// any member can message any other member`}
+/>
+
+<Verdict>
+  <p>Trees are easier to reason about. When something goes wrong, you follow the parent-child chain. Teams are more powerful for parallel workflows where agents need to coordinate laterally. Start with a tree. Graduate to teams when you find agents constantly relaying messages through parents just to reach siblings. The coordinator mode is worth studying: a leader that only delegates forces clean task decomposition. It cannot fall back to doing the work itself, which eliminates the most common failure mode of orchestrator agents.</p>
+</Verdict>
+
+### Decision 21: Permission Delegation
+
+When five agents are running in parallel and three of them need to edit files, who decides whether that's allowed?
+
+Codex pushes permissions down the tree. Each child inherits the parent's execution policy and approval settings. If a child needs permission, it asks the user directly through its own session. The policy travels with the agent. This is simple and stateless, but means the user could get bombarded with prompts from multiple agents at once.
+
+Claude Code routes permissions through the leader. Workers send permission requests to the leader's mailbox (a directory of JSON files under `~/.claude/teams/{name}/permissions/`). The leader reads pending requests, presents them to the user through its own UI, and writes resolutions back. A file lock prevents race conditions. Workers poll the resolved directory until their request appears. For in-process teammates, the leader's REPL queue handles permissions directly through the bridge module, skipping the filesystem round-trip. The leader can also grant "always allow" rules that propagate to all team members.
+
+<CodeComparison client:visible
+  codex={`// Codex: inherited policy
+child = spawn(prompt)
+// child inherits parent's exec_policy
+// child prompts user directly if needed
+// no coordination between siblings`}
+  claude={`// Claude Code: leader-mediated
+worker.needs_permission("Edit", "auth.ts")
+  -> write request to leader mailbox
+  -> leader reads pending, shows to user
+  -> user approves
+  -> leader writes resolution
+  -> worker polls, finds approval, proceeds`}
+/>
+
+<Verdict>
+  <p>Leader-mediated permissions solve the real problem: a human cannot context-switch between five simultaneous permission prompts. Routing through a single point gives the user one queue to work through. The cost is latency. Workers block on the mailbox poll while the leader processes the request. For interactive use with a human present, the leader pattern is correct. For autonomous batch processing, inherited policies with pre-approved rules perform better because agents never block.</p>
+</Verdict>
+
+### Decision 22: Background Execution
+
+Beyond child agents, both systems need to track long-running work happening outside the main conversation loop: shell commands, remote tasks, scheduled jobs.
+
+Codex separates local and remote execution. Locally, the agent registry tracks child threads with status watchers that notify the parent on completion. For remote execution, a separate cloud-tasks TUI (a Ratatui application) manages a queue of tasks submitted to a backend API. Users create tasks with a prompt and an optional environment, then watch results arrive asynchronously. The cloud task system handles its own diff viewing, apply-to-local workflows, and best-of-N parallel attempts.
+
+Claude Code maintains a unified task registry tracking seven types of background work: shell commands, local agents, remote agents, in-process teammates, workflows, MCP monitors, and dreams. All seven appear in the same footer pill and the same Shift+Down dialog. A cron scheduler fires prompts into the agent on a user-defined schedule, stored in `~/.claude/scheduled_tasks.json`. The scheduler acquires a cross-session lock so only one instance fires per schedule, handles missed firings on startup, and auto-prunes expired recurring tasks. This is how scheduled, autonomous behavior works: a cron entry saying "check the deploy every 30 minutes" injects a user message into the running session.
+
+<CodeComparison client:visible
+  codex={`// Codex: local tree + remote queue
+local:  registry.spawn(child) -> status_watcher
+remote: cloud_tasks.submit(prompt, env="prod")
+        cloud_tasks.poll() -> diff -> apply_local
+        // separate TUI application`}
+  claude={`// Claude Code: unified task registry
+tasks: [shell, agent, remote, teammate,
+        workflow, mcp_monitor, dream]
+// all visible in one UI
+cron.schedule("0 */30 * * *", "check deploy")
+// fires prompt into the session on schedule`}
+/>
+
+<Verdict>
+  <p>The unified registry is the right call. Background work is background work regardless of whether it's a shell command or a remote agent. One place to see it all. The cron scheduler is the more interesting pattern. Agents that can schedule future work for themselves cross the line from reactive to proactive. If you're building a coding agent that should monitor CI, check for review comments, or consolidate learnings, scheduled prompt injection is the mechanism.</p>
+</Verdict>
+
+<DeepDive title="The Dream System" hook="an agent that maintains its own institutional memory">
+
+Claude Code includes an autonomous background agent called "dream" that consolidates learnings from past sessions into persistent memory files. No user action triggers it. It runs on its own schedule.
+
+**Gate checks (cheapest first).** Every turn, the system checks whether enough time has passed since the last consolidation (default: 24 hours, a single `stat` call on a lock file). If that passes, it counts how many session transcripts have been modified since then (default: 5 minimum). If that passes too, it attempts to acquire a file-based lock by writing its PID. Two processes racing both write; the second one re-reads and sees the other's PID, so it backs off. If the lock holder's PID is dead and the lock is older than an hour, the next process reclaims it.
+
+**The prompt.** The dream agent receives a four-phase instruction. Phase 1: orient by reading the memory directory and its index file. Phase 2: gather recent signal by scanning daily logs and grepping transcripts for narrow terms (never reading entire JSONL files). Phase 3: consolidate by writing or updating topic-specific memory files, converting relative dates to absolute ones, and deleting contradicted facts. Phase 4: prune the index to stay under a line count and byte limit, demoting verbose entries into their topic files.
+
+**Execution.** The dream runs as a forked subagent with restricted tools. It appears in the task registry as a "dream" type with two phases: "starting" and "updating" (the latter flips when the first Edit or Write tool call lands). The UI tracks which files it touched and shows assistant turns with tool call counts. If the fork fails, the lock's mtime is rolled back so the next session will retry.
+
+**Why this matters.** Most agents lose everything between sessions. Memory files help, but they grow stale. A dream agent that periodically reviews recent work and updates persistent memory means the agent's knowledge of the project improves over time without any user effort. The 24-hour, 5-session gate ensures it fires often enough to stay current but not so often that it wastes compute on an unchanged codebase.
+
+</DeepDive>

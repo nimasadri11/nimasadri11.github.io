@@ -1,0 +1,12 @@
+flowchart LR
+    subgraph Codex
+        A1[Tool Call] --> B1[Run in Sandbox] --> C1{Blocked?}
+        C1 -->|No| D1[Done]
+        C1 -->|Yes| E1[Ask User]
+    end
+    subgraph CC["Claude Code"]
+        A2[Tool Call] --> B2{Permitted?}
+        B2 -->|Yes| C2[Run]
+        B2 -->|Ask| D2[Prompt User]
+        B2 -->|No| E2[Blocked]
+    end

@@ -1,0 +1,75 @@
+import CodeComparison from '../components/CodeComparison.tsx';
+import Verdict from '../components/Verdict.astro';
+import DeepDive from '../components/DeepDive.astro';
+
+## Act 2: The Prompt Builder
+
+> **2. The Prompt Builder.** Before each turn, the agent assembles a prompt: system instructions that define the agent's behavior, the conversation history, the list of available tools, and any project-specific context. The prompt is the agent's entire world. What you include shapes what the model does. What you exclude, the model cannot know. Since prompts are sent every turn, caching identical prefixes across turns can cut costs and latency dramatically.
+
+The session is alive. Now both systems face the same question: what does the model see?
+
+A ten-turn coding session sends roughly the same system prompt, tool definitions, and conversation history on every call. Only the last user message and the latest tool results change. Re-processing the identical prefix each time is waste. Both systems optimize for this. They do it in opposite ways.
+
+### Decision 4: Prompt Caching
+
+Codex delegates caching to the server. Each turn, the client sends a reference to the previous response. The server already holds the cached computation from that response, so it skips re-processing everything it already knows. A routing token in the response headers ensures the next request lands on the same server instance, the one holding the warm cache.
+
+Claude Code handles caching on the client side. The system prompt is split at a fixed boundary: everything above it (identity, capabilities, tool instructions) stays the same across turns. Everything below it (session context, memory, language) can change. The client marks the stable prefix as cacheable so the API can skip re-processing it. Tools get sorted alphabetically so the tool block stays identical turn to turn. Built-in tools sort as one group, MCP tools as a second group appended after, so connecting a new MCP server doesn't invalidate the built-in cache.
+
+<CodeComparison client:visible
+  codex={`// Codex: server-side caching
+request.previous_response_id = last_response.id  // server remembers
+request.route_to_same_server = true               // sticky routing
+// server skips re-processing the prefix`}
+  claude={`// Claude Code: client-side cache boundaries
+prompt = [
+  system_prefix,     // stable across turns → cached
+  CACHE_BOUNDARY,    // everything above this is reusable
+  dynamic_context,   // current turn, git status, etc.
+  tools_sorted_alphabetically  // stable ordering for cache hits
+]`}
+/>
+
+<Verdict>
+  <p>Codex's approach is more powerful when it works. The client sends a small delta each turn instead of re-transmitting the full conversation. But it requires sticky routing, a live WebSocket, and a warm server. If the connection drops or the server recycles, you fall back to full re-processing. Claude Code re-sends everything but relies on prefix matching to avoid re-computation. Any API endpoint can serve any turn with no routing affinity. For a tool where sessions last hours and network conditions vary, client-side caching is the safer bet. If you're building an agent, start with client-side cache boundaries. Add server-side caching when bandwidth becomes the bottleneck.</p>
+</Verdict>
+
+### Decision 5: Tool Taxonomy
+
+How many tools should the model have?
+
+Codex ships about 10 tools. A general `shell` tool handles most operations: reading files, searching code, running builds. A separate `apply_patch` tool handles file edits via unified diff because shell-based edits break on multi-line changes. The model figures out the rest.
+
+Claude Code ships 30+ tools. File operations split into three (read, edit, write), each with distinct validation rules. Search splits into filename matching and content search rather than delegating to shell `grep`. Agents, tasks, planning, web access, and notebook editing each get their own tool. Each tool carries its own permission rules and UI rendering.
+
+<CodeComparison client:visible
+  codex={`// Codex: few powerful tools
+tools = [shell, apply_patch, mcp_proxy,
+         spawn_agent, list_dir]
+// model uses shell for most operations`}
+  claude={`// Claude Code: many specialized tools
+tools = [Bash, FileRead, FileEdit, FileWrite,
+         Glob, Grep, Agent, TaskCreate,
+         WebFetch, WebSearch, ...]
+// each tool has permissions, validation, UI`}
+/>
+
+The count matters for a specific reason. Each tool definition costs tokens. Codex's 10 tools might use ~1K tokens of prompt space. Claude Code's 30+ tools use ~6K. That's why Claude Code includes a ToolSearch tool: when the count exceeds a threshold, some tools load on demand. The model sees a summary of available tools and fetches their full schemas only when needed.
+
+But the bigger difference is in guardrails. Claude Code's Edit tool refuses to work on a file you haven't Read first. This prevents the model from blindly patching files it hasn't seen, a common source of bad diffs. Codex's `apply_patch` has no such guard. The model can generate patches for files it hasn't read, which works when training data matches the file and fails when it doesn't.
+
+<Verdict>
+  <p>Fewer tools is the better default. Every tool in the prompt is a decision the model must make. Ten tools is a manageable decision space. Thirty-five requires heuristics that sometimes misfire. But Claude Code's tool splitting buys real safety. The Read-before-Edit invariant catches a class of bugs that Codex leaves to the model's judgment. If you're building an agent, start with few tools and a shell escape hatch. Then split out dedicated tools only where you need guardrails or structured output that shell can't provide.</p>
+</Verdict>
+
+<DeepDive title="What the Model Actually Sees" hook="full prompt anatomy for both systems">
+
+The two systems construct prompts at different levels of abstraction.
+
+**Codex** builds a structured object and hands it to the Responses API. The object contains conversation history, tool definitions, and a single concatenated string of instructions (system prompt + project docs + permissions). The server decides how to present all of this to the model. The client never constructs a messages array or manages system/user/assistant roles.
+
+**Claude Code** builds every piece of the prompt explicitly. The system prompt is an ordered array of 14+ sections: identity, system capabilities, task approach, tool usage, per-tool guidance, tone, output rules, then a dynamic boundary, then session-specific content (mode instructions, memory, environment info, language, MCP instructions). Each section is a separate string. The messages array carries `cache_control` markers for incremental caching. The tools array is partition-sorted for stability.
+
+The difference in philosophy is clear. Codex treats the prompt as data for an API that knows how to format it. Claude Code treats the prompt as a carefully engineered document where section order, cache boundaries, and scoping are all explicit design decisions. Codex has fewer knobs. Claude Code has more control.
+
+</DeepDive>

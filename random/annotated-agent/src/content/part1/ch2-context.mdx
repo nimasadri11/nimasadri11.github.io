@@ -1,0 +1,120 @@
+import CodeComparison from '../../components/CodeComparison.tsx';
+import Verdict from '../../components/Verdict.astro';
+
+## Chapter 2: Context Construction and Management
+
+> **The Context Layer.** Every turn, the agent assembles a full prompt: system instructions, conversation history, tool definitions, project instructions, environment state, and memories. What goes into this prompt determines what the model can see. What gets left out, the model cannot know. As sessions grow long, the context fills up, and the agent must decide what to compress, what to drop, and what to preserve.
+
+The context is the model's entire world. Every fact the agent knows, every tool it can call, every instruction it follows, all of it lives in the context window. Two problems dominate: what to put in (construction) and what to do when it's full (management).
+
+### Decision 7: Context Construction
+
+Both systems inject a similar set of things into the context before the first turn, but they organize them differently.
+
+**Codex** uses the OpenAI Responses API, which has a `base_instructions` field that functions as the system prompt (e.g., "You are Codex, a coding agent based on GPT-5"). On top of that, it builds two message groups. The first is a developer-role message containing: permission and sandbox policy, the memory summary (from `memory_summary.md`, truncated to 5,000 tokens), collaboration mode instructions, personality spec, and app/plugin/skill capability summaries. The second is a user-role message containing: AGENTS.md content (discovered by walking from the project root to CWD) and an environment context block with CWD, shell type, current date, timezone, network policy, and active subagents.
+
+**Claude Code** splits context across the system prompt and a user message. The system prompt is an ordered array of 14+ sections: identity, capabilities, task approach, tool-specific guidance, output style, then a cache boundary, then dynamic content (mode instructions, MCP server instructions, language preference). A user message prepended to the conversation carries: CLAUDE.md content (from a four-tier hierarchy: managed, user, project, local) and the current date. Git status (branch, recent commits, modified files) goes into the system prompt suffix.
+
+<CodeComparison client:visible
+  codex={`# Codex: two message groups
+developer_message = {
+    "model_instructions":   "You are Codex...",
+    "permission_policy":    sandbox_rules,
+    "memory_summary":       load("memory_summary.md")[:5000],
+    "collaboration_mode":   "Plan | Execute | Default",
+    "personality":          "Friendly | Pragmatic | None",
+    "skill_summaries":      loaded_skills,
+    "plugin_summaries":     loaded_plugins,
+}
+user_message = {
+    "agents_md":            walk_agents_md(root, cwd),
+    "env":                  {cwd, shell, date, tz, network},
+}`}
+  claude={`# Claude Code: system prompt + user message
+system_prompt = [
+    # cacheable prefix
+    identity, capabilities, task_approach,
+    tool_guidance, output_style,
+    CACHE_BOUNDARY,
+    # dynamic suffix
+    mode_instructions, mcp_instructions,
+    language, git_status,
+]
+user_message = {  # system-reminder
+    "claude_md": load_4_tier(),  # managed/user/project/local
+    "date":      current_date,
+}`}
+/>
+
+The key difference in project instructions: Codex discovers AGENTS.md files by walking from the git root down to CWD and concatenates them. Claude Code loads CLAUDE.md files from four tiers (managed policies, user settings, project root, local overrides) with an `@include` directive for pulling in external files. CLAUDE.md also supports structured rules files (`.claude/rules/*.md`). Codex caps project docs by byte count. Claude Code doesn't cap but relies on the compaction system to handle overflow.
+
+<Verdict>
+  <p>Both systems support layered configuration. Codex has `~/.codex/config.toml` (user-global), `.codex/config.toml` (project), system-level config, and MDM policies. Claude Code has managed policies, user settings (`~/.claude/CLAUDE.md`), project settings, and local overrides. The main difference is CLAUDE.md files double as both configuration and instruction injection (they're concatenated into the context), while Codex separates config (TOML) from instructions (AGENTS.md). Claude Code's `@include` directive and `.claude/rules/*.md` structured rules give more flexibility in how instructions are organized.</p>
+</Verdict>
+
+### What Changes Per Turn
+
+Both systems avoid re-sending the full context from scratch on every turn. They track what changed and inject only the differences.
+
+**Codex** maintains a reference snapshot of the previous turn's context. Before each new turn, it diffs the current state against the snapshot. If the model switched, new model-specific instructions are injected. If the sandbox or approval policy changed, new permission instructions are injected. If CWD, timezone, or network config changed, a new environment context block is injected. If nothing changed, nothing is injected. After compaction clears the history, the reference snapshot resets and the next turn does a full re-injection.
+
+**Claude Code** re-sends the full user context on every turn (it's memoized, so it doesn't recompute), but injects deltas for specific changes as `<system-reminder>` messages: new MCP servers, new agents, newly discovered deferred tools, and file attachment results. The session memory subagent (covered in Chapter 6) also writes running notes to a markdown file during the session; these survive context compaction.
+
+<CodeComparison client:visible
+  codex={`// Codex: diff-based per-turn injection
+snapshot = last_turn_context()
+if model_changed:  inject(model_instructions)
+if policy_changed: inject(permission_update)
+if env_changed:    inject(environment_context)
+if nothing_changed: skip
+// after compaction: reset snapshot, full re-inject`}
+  claude={`// Claude Code: full context + deltas
+prepend(user_context)  // memoized, always sent
+if new_mcp_servers: inject(system_reminder, mcp_delta)
+if new_agents:      inject(system_reminder, agent_delta)
+if new_tools:       inject(system_reminder, tool_delta)
+// session memory subagent writes notes that survive compaction`}
+/>
+
+<Verdict>
+  <p>Diff-based injection is more efficient on the wire (sends less data) but more complex to implement correctly. You need to track every piece of context and detect changes. Claude Code's approach is simpler (always send everything) and relies on the KV cache to avoid re-processing the unchanged prefix. For most agent CLIs, the simpler approach is fine because the context prefix is a small fraction of the total tokens. Diff-based injection matters more when the context is very large or bandwidth is constrained.</p>
+</Verdict>
+
+### Decision 8: Context Compaction
+
+Both systems track token usage and compress when the context gets too large. The strategies differ significantly in granularity.
+
+**Codex** just relies on LLM summarization. When total token usage exceeds the model's `auto_compact_token_limit`, the system sends the conversation to the model with a prompt that says "You are performing a CONTEXT CHECKPOINT COMPACTION. Create a handoff summary for another LLM that will resume the task." The summary replaces the old history. Up to 20,000 tokens of recent user messages are preserved verbatim (taken from the end of the conversation). Token counting uses a byte-based heuristic (bytes divided by 4), not a tokenizer.
+
+**Claude Code** uses a five-level cascade, each level more expensive than the last:
+
+**Level 1: Time-based microcompact.** Anthropic's prompt caching has a TTL (the cached prefix expires after a period of inactivity). When enough time has passed since the last API call, the cache is cold and the full prompt will be reprocessed on the next request regardless. Since the prefix is being reprocessed anyway, this is the cheapest time to shrink it: the system clears old tool results from compactable tools (read, bash, grep, glob, web search, web fetch, edit, write). The tool call record stays; the output content is deleted. No LLM call needed.
+
+**Level 2: Cached microcompact.** When the prompt cache is still warm, the system uses `cache_edits`, an Anthropic API feature that modifies the cached prompt prefix on the server without the client re-sending it. The server deletes specific tool result content from its cached representation. The client's local messages stay unchanged. This saves bandwidth and avoids re-processing the prefix. Only works with the Anthropic first-party API.
+
+**Level 3: Session memory compaction.** Claude Code runs a background "session memory" subagent during long sessions. This forked subagent periodically reads the conversation and writes a structured summary to a markdown file (covering task state, files touched, errors, learnings, and next steps). When compaction is needed, the system checks if this summary exists. If it does, the summary becomes the compaction output without an LLM call, because the summary was already written during the session. The system slices the conversation to keep 10,000-40,000 tokens of recent messages and prepends the session memory content as the context anchor.
+
+**Level 4: Full LLM compaction.** When the cheaper levels aren't enough, the system sends the conversation to the model with a structured prompt requesting a nine-section summary: primary request, key concepts, files and code sections, errors and fixes, problem solving, all user messages verbatim (these must be preserved word-for-word), pending tasks, current work, and next step. Before producing the summary, the model writes an `<analysis>` block where it chronologically reviews every message, extracts file names, code snippets, function signatures, and user feedback. This analysis block is a reasoning scratchpad; `formatCompactSummary()` strips it from the output before the summary enters context. The model sees the analysis while writing the summary, but the final context only contains the summary itself.
+
+**Level 5: Reactive compaction.** Triggered when the API returns a `prompt_too_long` error (HTTP 413). The streaming loop withholds the error instead of surfacing it. Two recovery attempts follow, each tried once: first, the system drains all staged context collapses (an experimental feature that groups related tool call/result pairs into compact summaries, preserving granular context). If a retry after draining still returns 413, the system falls back to full LLM compaction (Level 4). If that also fails, the error surfaces to the user. There's also a media-size recovery path for oversized images/PDFs that reactive compact handles separately.
+
+**Large tool results** get special treatment in Claude Code. When a tool result exceeds 50,000 characters (configurable per tool), it's written to disk as a JSON file in the session directory. The context gets a 2KB preview (the first ~2,000 bytes of the content) plus the file path. The model can re-read the full result from disk using the Read tool if it needs the complete output later. This prevents a single large grep or file read from consuming half the context window. Tools can opt out by setting their max result size to infinity (the Read tool does this, since its output IS the file content).
+
+<CodeComparison client:visible
+  codex={`// Codex: single-strategy compaction
+if tokens > auto_compact_limit:
+  summary = ask_model("create handoff summary")
+  history = [summary] + recent_user_messages(20K)
+// token counting: bytes / 4 heuristic`}
+  claude={`// Claude Code: five-level cascade
+1. microcompact: clear old tool outputs (free)
+2. cached microcompact: cache_edits API (free)
+3. session memory: use existing notes as summary (free)
+4. LLM compaction: 9-section structured summary (expensive)
+5. reactive: triggered by API error (last resort)
+// large results (>50K chars) persisted to disk`}
+/>
+
+<Verdict>
+  <p>Claude Code's cascade is the better architecture. Three of its five levels are free (no LLM call). Codex jumps straight to the expensive option. For a system that runs long sessions, the cheap levels handle most cases and defer the expensive summarization. The session memory approach is particularly clever: by having a subagent write notes during the session, the summary already exists when compaction is needed. The tradeoff is complexity: five compaction strategies means five sets of edge cases and failure modes. Codex's single strategy is simpler to reason about and debug. If you're building an agent, implement the cheapest level first (clearing old tool outputs) and add layers when sessions get long enough to need them.</p>
+</Verdict>

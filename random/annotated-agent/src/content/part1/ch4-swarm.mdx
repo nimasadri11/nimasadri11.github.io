@@ -1,0 +1,236 @@
+import CodeComparison from '../../components/CodeComparison.tsx';
+import Verdict from '../../components/Verdict.astro';
+import TopologyDiagram from '../../components/diagrams/TopologyDiagram.tsx';
+import TmuxLayoutDiagram from '../../components/diagrams/TmuxLayoutDiagram.tsx';
+
+
+## Chapter 4: The Swarm
+
+> **The Swarm.** When a task is too large for one agent, the system needs to coordinate multiple agents working in parallel. This goes beyond spawning a child and waiting for it. Real multi-agent orchestration requires: deciding how agents communicate (message passing vs shared state), how permissions flow (does each agent ask the user, or does a leader decide?), how agents are physically isolated (separate processes? terminals? threads?), and how background work is tracked and surfaced.
+
+A single agent with a well-managed context window handles most tasks. When the task exceeds what one agent can hold in context, you need more than one.
+
+Spawning a child agent and waiting for its result is the single-threaded version. Real orchestration begins when you need five agents working in parallel, each one needing permission to run commands, each one producing output that someone needs to synthesize.
+
+### Decision 11: Agent Topology
+
+Both systems let agents create other agents. They disagree about how those agents relate to each other. The choice matters because topology determines failure modes: trees fail predictably (one parent, one point of control), while networks fail in harder-to-trace ways.
+
+**Codex uses a strict tree.** A parent spawns children. Children can spawn grandchildren. Every message flows parent-to-child or child-to-parent. No lateral communication between siblings. A configurable depth limit prevents runaway recursion, and a max-threads limit caps total agents across the entire tree. The counter is reservation-based: claim a slot before spawning, release it automatically if the spawn fails. The agent count stays consistent even when things go wrong.
+
+Agents get randomly assigned nicknames from a pool of 101 famous scientists and philosophers: Euclid, Hypatia, Turing, Feynman, Ramanujan. When the pool is exhausted, it resets and adds ordinal suffixes: "Euclid the 2nd", "Euler the 3rd". Three built-in roles shape what a child agent can do:
+
+- **Explorer**: fast, read-only investigation. The prompt says "Explorers are fast and authoritative" and encourages spawning multiple in parallel for different questions.
+- **Worker**: implementation and execution. The prompt says "Always tell workers they are not alone in the codebase, and they should not revert edits made by others."
+- **Default**: no special configuration.
+
+A parent can also **fork** a child from its own conversation history. Two modes: full history (child inherits everything the parent has seen) or last-N-turns (child gets only recent context, avoiding noise from earlier exploration). The fork filters intermediate artifacts like tool outputs and reasoning traces, keeping only the final answers.
+
+**Claude Code has multiple ways to run agents.** Unlike Codex's single spawn mechanism, Claude Code offers several execution modes depending on the use case:
+
+- **Foreground (blocking)**: the default. The parent waits for the agent to finish and gets the result inline. Good for research or exploration where the parent needs the answer before continuing.
+- **Background (non-blocking)**: `run_in_background: true`. The parent continues working. A task notification arrives when the agent finishes. Good for long-running work the parent doesn't need to wait for.
+- **Fork subagent**: the child shares the parent's prompt cache, so startup is fast and cheap. The fork strips intermediate artifacts (tool outputs, reasoning traces) and keeps only the final answers.
+- **Worktree isolation**: the agent works in a separate git worktree, so its file changes don't affect the parent's working directory. Good for speculative changes.
+- **Remote (CCR)**: launches the agent in a remote cloud environment. Always runs in background.
+
+On top of these single-agent modes, Claude Code supports **teams**. A leader creates a team with named members. Any member can message any other member. Three physical backends:
+
+- **Tmux**: each teammate gets a tmux pane with a color-coded border. The leader stays in the left 30% of the window, teammates share the right 70%. A lock serializes pane creation with a 200ms delay for shell initialization. The layout looks like this:
+
+<TmuxLayoutDiagram client:visible />
+- **iTerm2**: uses native iTerm2 pane splitting for macOS users.
+- **In-process**: teammates run invisibly in the same Node.js process, sharing the API client and MCP connections. Each teammate gets its own async context scope. The parent's conversation history is stripped so teammates start fresh.
+
+The team's identity system uses `agentName@teamName` format (e.g., `researcher@auth-fix`).
+
+<TopologyDiagram client:visible />
+
+<CodeComparison client:visible
+  codex={`# Codex: strict tree with roles
+child = spawn(prompt, role="explorer")
+child.send("investigate the auth module")
+result = child.wait()
+# parent <-> child only, no sibling messages
+# fork mode: child inherits parent history
+forked = fork(last_n_turns=3, role="worker")`}
+  claude={`# Claude Code: flexible teams with backends
+team = create_team("auth-fix", backend="tmux")
+team.spawn("researcher", prompt, color="blue")
+team.spawn("implementer", prompt, color="green")
+send_message(to="researcher", "check auth module")
+send_message(to="implementer", "wait for research")
+# any member can message any other member`}
+/>
+
+<Verdict>
+  <p>Trees are the right default. The constraint of no lateral messaging forces clean decomposition. When something goes wrong, you follow the parent-child chain. Graduate to teams when you find agents constantly relaying messages through parents to reach siblings. The fork mode is a practical pattern: a child that inherits the last 3 turns of parent context starts with useful knowledge without the noise of a full conversation.</p>
+</Verdict>
+
+### The Coordinator Pattern
+
+Claude Code has a coordinator mode where the leader agent is stripped of all tools that touch the filesystem. It cannot fall back to doing the work itself. This single constraint produces better task decomposition than any prompt engineering.
+
+The leader can spawn workers, send messages, stop workers, and answer questions from its own knowledge. No file reads, no edits, no shell commands, no grep. This is enforced at the tool level, not the prompt level. Because every task must be expressible as a prompt to a worker, the coordinator is forced to decompose cleanly.
+
+The coordinator follows a four-phase workflow: research (parallel explorers), synthesis (the coordinator's main intellectual contribution: deciding what to build and writing specs), implementation (workers with precise specs, serialized per file area), and verification (fresh workers who test what was built). The continue-vs-spawn decision has explicit rules: continue when the worker has useful context (error state, file familiarity), spawn fresh when you need clean eyes (verification, wrong approach).
+
+When the `scratchpad` feature is enabled, the coordinator gets a shared directory where workers can read and write without permission prompts. This becomes a coordination surface: workers leave findings, the coordinator leaves specs, verification workers leave test results.
+
+Codex doesn't have an explicit coordinator mode. The orchestration logic lives in the parent agent's own reasoning. The parent decides how to decompose work, what roles to assign, and how to synthesize results. This is more flexible (no prescribed phases) but relies on the model to be a good orchestrator without structural guardrails.
+
+<Verdict>
+  <p>A leader that cannot do work itself is forced to decompose cleanly. It cannot take shortcuts by "doing it itself." The four-phase workflow (research, synthesize, implement, verify) is a useful default. The continue-vs-spawn rules encode months of trial and error.</p>
+</Verdict>
+
+### Decision 12: Permission Delegation
+
+When five agents are running in parallel and three of them need to edit files, who decides whether that's allowed? This is the multi-agent permission problem, and getting it wrong means either a flood of prompts the user can't process or silent approvals that bypass oversight.
+
+**Codex pushes permissions down the tree.** Each child inherits the parent's execution policy and approval settings. If a child needs permission, it asks the user directly through its own session. The policy travels with the agent. This is simple and stateless, but means the user could get bombarded with prompts from multiple agents at once.
+
+**Claude Code routes permissions through the leader.** The mechanism depends on the backend. For in-process teammates, the leader's own React-based permission UI handles requests directly. A bridge module makes the leader's permission queue accessible from non-React code, so teammates running in the same process can use it. For tmux/iTerm teammates running in separate processes, communication happens through file-based mailboxes.
+
+The leader can also grant "always allow" rules that propagate to all team members. During teammate initialization, team-wide allowed paths are applied as session-scoped permission rules. When a teammate finishes its work, a Stop hook fires that marks it inactive, then sends an idle notification to the leader with a summary of what it accomplished.
+
+<CodeComparison client:visible
+  codex={`# Codex: inherited policy
+child = spawn(prompt, role="worker")
+# child inherits parent's exec_policy
+# child inherits parent's approval_mode
+# child prompts user directly if needed
+# no coordination between siblings`}
+  claude={`# Claude Code: leader-mediated
+worker.needs_permission("Edit", "auth.ts")
+# in-process: routed through leader's UI queue
+# tmux/iTerm: written to file mailbox
+leader.sees_request()  # shows to user
+user.approves()
+# leader can also grant team-wide "always allow" rules`}
+/>
+
+<Verdict>
+  <p>Leader-mediated permissions solve the real problem: a human cannot context-switch between five simultaneous permission prompts. Routing through a single point gives the user one queue to work through. The cost is latency. Workers block while the leader processes the request. For interactive use with a human present, the leader pattern is correct. For autonomous batch processing, inherited policies with pre-approved rules perform better because agents never block.</p>
+</Verdict>
+
+#### Inter-Agent Communication
+
+The topology choice drives how agents talk to each other.
+
+**Codex uses in-memory channels.** Each agent has a mailbox built on in-memory async channels with a watch-based notification layer. Messages are `InterAgentCommunication` objects with author, recipient (both as hierarchical paths like `/root/worker`), content, and a `trigger_turn` flag that determines whether the message wakes the receiving agent for a new turn. Sequence numbers are monotonically increasing. The receiver drains the channel into a pending buffer and processes messages in delivery order.
+
+**Claude Code uses file-based mailboxes.** Messages are written as JSON files to directories under `~/.claude/teams/{name}/`. The `SendMessage` tool supports multiple address types: teammate names, broadcast (`*`), Unix domain sockets for cross-session messaging, and remote bridge sessions for cross-machine messaging. Structured message types include shutdown requests (with approve/reject flow), plan approval responses, and plain text. When a message is sent to a stopped in-process teammate, the system auto-resumes it.
+
+<CodeComparison client:visible
+  codex={`# Codex: in-memory async channels
+mailbox.send(InterAgentMessage(
+    author="/root",
+    recipient="/root/worker",
+    content="implement the auth fix",
+    trigger_turn=True,  # wake the agent
+))
+# receiver: drain channel, process in order
+# sequence numbers for ordering`}
+  claude={`# Claude Code: file + multi-transport
+send_message(to="researcher", message)
+# -> teammate name: file mailbox or in-process queue
+# -> "*": broadcast to all teammates
+# -> "uds:/path": cross-session via Unix socket
+# -> "bridge:session_...": cross-machine
+# structured types: shutdown_request, plan_approval`}
+/>
+
+How does the coordinator use these channels in practice? It spawns a worker with an initial prompt (which loads the full task context). For follow-up instructions, it uses SendMessage, which reuses the worker's loaded context instead of spawning a fresh agent. Workers report back via task notification XML tags embedded in their output. The coordinator reads findings, synthesizes across workers, and decides what to delegate next. When the scratchpad is enabled, it becomes a shared filesystem directory: workers leave findings as files, the coordinator leaves specs, verification workers leave test results. The scratchpad sidesteps the message-passing system entirely for bulk data.
+
+In-memory channels are faster and simpler for same-process agents. File-based mailboxes are more resilient (survive process crashes) and support cross-process, cross-session, and cross-machine messaging. Claude Code's multi-transport addressing is the more ambitious design. For a single-process agent tree, channels are the right call. For a system where agents might run in separate terminals, processes, or machines, you need something durable.
+
+### Decision 13: Cron and Proactive Agents
+
+Beyond child agents, both systems need to track long-running work happening outside the main conversation loop.
+
+Codex tracks background agents through its registry with status watchers that notify the parent on completion. It also has a separate cloud-tasks system for remote execution (submitting tasks to a backend API), but that's more of a platform feature than an agent orchestration pattern.
+
+Claude Code maintains a unified task registry tracking seven types of background work: shell commands, local agents, remote agents, in-process teammates, workflows, MCP monitors, and dreams (covered in Chapter 6). All seven appear in the same footer pill and the same status dialog. A cron scheduler fires prompts into the agent on a user-defined schedule. The scheduler acquires a cross-session lock (so only one instance fires per schedule), handles missed firings on startup, and auto-prunes expired recurring tasks. This is how scheduled, autonomous behavior works: a cron entry saying "check the deploy every 30 minutes" injects a user message into the running session.
+
+<CodeComparison client:visible
+  codex={`# Codex: local tree + remote queue
+# local
+registry.spawn(child)  # -> status_watcher
+# remote
+cloud_tasks.submit(prompt, env="prod")
+cloud_tasks.poll()  # -> diff -> apply_local
+# separate TUI for cloud tasks`}
+  claude={`# Claude Code: unified registry + cron
+tasks = [shell, agent, remote, teammate,
+         workflow, mcp_monitor, dream]
+# all visible in one UI, one status dialog
+cron.schedule("*/30 * * * *", "check deploy")
+# fires prompt into session on schedule
+# cross-session lock prevents duplicate firings`}
+/>
+
+<Verdict>
+  <p>The unified registry is the right call. Background work is background work regardless of type. One place to see it all. The cron scheduler is the more interesting pattern. Agents that can schedule future work for themselves cross the line from reactive to proactive. If you're building a coding agent that should monitor CI, check for review comments, or consolidate learnings, scheduled prompt injection is the mechanism.</p>
+</Verdict>
+
+### Decision 14: MCP Role
+
+Every team connects different external tools: code search, deployment, databases. MCP standardizes how tools are discovered and called. The question is what role the agent plays in the protocol.
+
+Codex plays both sides. It acts as an MCP client (connecting to external tool servers) and as an MCP server (exposing itself to IDEs and other tools). The MCP server reads JSON-RPC messages from stdin, processes tool calls through a thread manager, and writes responses to stdout. An IDE like VS Code can spawn Codex as a subprocess and talk to it over this protocol, treating the entire agent as a single tool.
+
+Claude Code is client-only. It connects to external MCP servers via three transports (stdio, SSE, HTTP) and wraps every discovered tool into its native tool interface. MCP tools get the same permission checks, hooks, and analytics as built-in tools. The client also handles OAuth flows for authenticated MCP servers.
+
+<CodeComparison client:visible
+  codex={`# Codex: both client and server
+# As client: connect to tool servers
+mcp_client.connect("code-search-server")
+tools = mcp_client.list_tools()
+# As server: expose self to IDEs
+stdin.read(json_rpc_request)
+result = thread_manager.call_tool(request)
+stdout.write(json_rpc_response)`}
+  claude={`# Claude Code: client only
+# Connect to tool servers, wrap as native tools
+for server in mcp_servers:
+    client = connect(server, transport)
+    for tool in client.list_tools():
+        native = wrap(tool)    # same interface as built-ins
+        native.permissions = same_as_builtin
+        native.hooks = same_as_builtin
+        register(native)`}
+/>
+
+<Verdict>
+  <p>Being both MCP client and server is the bigger advantage. When your agent is also a server, IDEs, other agents, and automation scripts can call it. Claude Code's approach of normalizing MCP tools into native tools is good engineering (one permission system for everything), but it leaves the agent as a leaf node. A persistent agent that's also an MCP server becomes a service other tools can call at any time.</p>
+</Verdict>
+
+### Agent Lifecycle
+
+The two systems handle agent lifecycle very differently. In Codex, agents die when they finish. In Claude Code, they go idle and wait for more work.
+
+**Codex agents are one-shot.** An agent transitions through states: PendingInit → Running → Completed (or Errored/Shutdown). Completed is final. The agent's last message is carried in the Completed state so the parent can read it. One exception: Interrupted is NOT final. An interrupted agent can receive more input and resume. Shutdown is recursive: killing a parent kills all descendants. The agent tree can be recovered from disk by replaying rollout files, recursively resuming all child threads that were still open.
+
+**Claude Code teammates persist after finishing.** When a teammate completes its task, it doesn't exit. It marks itself as idle, sends an idle notification to the leader (with a summary of what it accomplished), and starts polling its mailbox every 500ms for the next message. The teammate stays alive until explicitly shut down. This means the coordinator can reuse a teammate for follow-up work without paying the startup cost of spawning a new agent.
+
+Shutdown in Claude Code is cooperative. `terminate()` sends a shutdown request to the teammate's mailbox. The teammate's model decides whether to approve or reject. A teammate that's mid-task can reject shutdown and keep working. If the leader needs to force it, `kill()` aborts via the AbortController immediately. The distinction matters: terminate is a request, kill is a command.
+
+When the leader's session ends (user closes the terminal), teammates are force-killed: tmux/iTerm panes are closed and team directories are deleted. TeamDelete (the explicit cleanup tool) refuses to proceed if any teammates are still active and tells the coordinator to use graceful shutdown first.
+
+**Communication in practice.** The coordinator sends messages to any teammate by name (or broadcasts to all with `*`). Teammates send messages back to the leader by addressing `"team-lead"`. Teammates can also message other teammates by name (lateral communication). If a message is sent to a stopped teammate, the system auto-resumes it in the background. Worker results arrive as `<task-notification>` XML embedded in user-role messages, which the coordinator parses to distinguish them from actual user input.
+
+### Why Claude Code Uses More Agents
+
+In practice, Claude Code spawns subagents far more often than Codex. This is intentional, driven by five design choices in the prompts and tool descriptions.
+
+**Codex prohibits autonomous spawning.** The spawn tool description says: "Only use spawn_agent if and only if the user explicitly asks for sub-agents, delegation, or parallel agent work." The model needs the user's permission before it can delegate. Claude Code's Agent tool says the opposite: "Reach for it when research or multi-step implementation work would fill your context."
+
+**Claude Code's system prompt requires verification agents.** After any non-trivial implementation, the system prompt mandates: "independent adversarial verification must happen before you report completion." This forces at least one agent spawn per significant task. Codex's system prompt has zero mentions of agents or delegation.
+
+**Low spawn thresholds.** Claude Code's general-purpose agent triggers when the model is "not confident that you will find the right match in the first few tries." Any uncertain search justifies a spawn. Codex's role descriptions are sparse and subordinate to the spawning prohibition.
+
+**Tool surface area.** Claude Code has 10 agent-related tools (Agent, SendMessage, 6 Task tools, TeamCreate, TeamDelete). Codex has 5. More tools in the prompt means more decision points where the model considers delegation.
+
+**Coordinator mode.** Claude Code has a mode where the leader cannot touch the filesystem. "Parallelism is your superpower. Launch independent workers concurrently whenever possible." Codex has no equivalent.
+
+The result: Claude Code delegates proactively. Codex delegates only on request. Both are valid design choices. Claude Code's approach produces more parallel work but consumes more API tokens per task. Codex's approach keeps costs lower but loses the parallelism advantage.

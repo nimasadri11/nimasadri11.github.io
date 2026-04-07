@@ -1,0 +1,13 @@
+## What the Engineering Reveals
+
+The agent-specific decisions (Part 1) tell you what each team believes about AI. The engineering decisions (this part) tell you what each team believes about software.
+
+Codex bet on compiled binaries, actor-based concurrency, mutex-guarded state, immediate-mode rendering, and a headless server architecture. These choices point in one direction: the agent as a service that can run anywhere, serve multiple clients, and be locked down for autonomous operation. The engineering serves the infrastructure.
+
+Claude Code bet on a JavaScript runtime, generator-based concurrency, immutable state, a React component tree, and deep per-environment integration. These choices point in a different direction: the agent as a tool that iterates fast, ships to every developer, and fits their existing workflow. The engineering serves the experience.
+
+Neither set of choices is wrong. They follow from different theories about who uses the tool and how. Codex optimized for the agent running unattended on a server. Claude Code optimized for the agent running interactively on a developer's laptop. The runtime, the concurrency model, the UI framework, the extension surface, the platform features, all of them reinforce the same thesis on each side.
+
+The most interesting outcome: both teams arrived at the same architecture despite choosing opposite implementations at every layer. The spec is real. The engineering is taste.
+
+<a href="/">Back to Part 1: The Agent Architecture</a>

@@ -1,0 +1,59 @@
+import DecisionTable from '../../components/DecisionTable.tsx';
+import CodeBlock from '../../components/CodeBlock.tsx';
+
+## The 23 Decisions
+
+<DecisionTable client:visible showVerdicts={true} decisions={[
+  { number: 1, name: "Prompt Caching", codex: "Server-side (sticky routing, response references)", claude: "Client-side (cache boundaries, sorted tools)", verdict: "Client-side caching is the safer default", anchor: "ch-1" },
+  { number: 2, name: "Tool Taxonomy", codex: "Few powerful tools (~15, shell-centric)", claude: "Many specialized tools (35+, each with guardrails)", verdict: "Start few, split where you need guardrails", anchor: "ch-1" },
+  { number: 3, name: "Approval Caching", codex: "Exact-match command cache", claude: "Glob-pattern permission rules", verdict: "Exact-match for audit; patterns for daily use", anchor: "ch-1" },
+  { number: 4, name: "Hooks", codex: "Shell commands (gate only)", claude: "Async generators (gate + transform + inject)", verdict: "Shell gatekeeper first, transformer when users ask", anchor: "ch-1" },
+  { number: 5, name: "Skills", codex: "Markdown files injected into prompt", claude: "Tool-call invocation, on-demand loading", verdict: "Markdown for definition, model-driven for execution", anchor: "ch-1" },
+  { number: 6, name: "Plan Mode", codex: "User-controlled mode cycle", claude: "Agent-initiated mode transition", verdict: "Agent-initiated with user veto; manual override as fallback", anchor: "ch-1" },
+  { number: 7, name: "Context Construction", codex: "Diff-based per-turn injection", claude: "Full context + system-reminder deltas", verdict: "Cheap compaction first, LLM summarization last", anchor: "ch-2" },
+  { number: 8, name: "Context Compaction", codex: "Single LLM summarization", claude: "5-layer compaction cascade", verdict: "Cheap compaction first, LLM summarization last", anchor: "ch-2" },
+  { number: 9, name: "Security Philosophy", codex: "Sandbox-first (seatbelt, bubblewrap, seccomp)", claude: "Permission-first (rules, modes, classifier)", verdict: "Sandbox for unattended, permissions for interactive", anchor: "ch-3" },
+  { number: 10, name: "LLM-as-Judge", codex: "Guardian reviewer (dedicated model, risk score)", claude: "Transcript classifier (small model, auto mode)", verdict: "Reviewer for autonomous, classifier for interactive", anchor: "ch-3" },
+  { number: 11, name: "Agent Topology", codex: "Tree (parent-child only)", claude: "Flexible teams (any-to-any messaging)", verdict: "Start with trees, graduate to teams for lateral work", anchor: "ch-4" },
+  { number: 12, name: "Permission Delegation", codex: "Inherited policy, direct prompts", claude: "Leader-mediated mailbox", verdict: "Leader-mediated for interactive, inherited for autonomous", anchor: "ch-4" },
+  { number: 13, name: "Cron and Proactive Agents", codex: "Cloud task queue", claude: "Local cron scheduler", verdict: "Unified registry; cron for proactive agent behavior", anchor: "ch-4" },
+  { number: 14, name: "MCP Role", codex: "Client and server", claude: "Client only", verdict: "Be both client and server for composability", anchor: "ch-4" },
+  { number: 15, name: "Streaming Tool Execution", codex: "Fire-and-collect concurrency", claude: "Concurrent/serial partitioning", verdict: "Flag each tool as concurrent-safe or not", anchor: "ch-5" },
+  { number: 16, name: "Cross-Session Memory", codex: "Implicit (session files)", claude: "Active (file-based with semantic retrieval)", verdict: "File-based memory changes the agent's character", anchor: "ch-6" },
+  { number: 17, name: "Memory Consolidation", codex: "Automated 2-phase extraction pipeline (behind feature flag)", claude: "Background agent reviews history", verdict: "Cheap gates first, expensive consolidation only when earned", anchor: "ch-6" },
+  { number: 18, name: "Voice Input", codex: "Bidirectional realtime", claude: "Push-to-talk transcription", verdict: "Push-to-talk first; voice output when users ask", anchor: "ch-7" },
+  { number: 19, name: "Agent Personality", codex: "None", claude: "Companion sprite with animations", verdict: "Small personality goes a long way", anchor: "ch-7" },
+  { number: 20, name: "The Persistent Agent", codex: "No equivalent (Remote Control is connectivity only)", claude: "Local persistent daemon (KAIROS)", verdict: "Persistence is where agent CLIs are heading", anchor: "ch-8" },
+  { number: 21, name: "Communication Channels", codex: "Curated app marketplace via ChatGPT", claude: "MCP notification protocol (Slack, Discord, SMS)", verdict: "Open protocol over curated marketplace", anchor: "ch-8" },
+  { number: 22, name: "Code as Orchestration", codex: "V8 isolate Code Mode", claude: "Standard tool-use protocol", verdict: "Code orchestration for structured workflows", anchor: "ch-8" },
+  { number: 23, name: "Batch Execution", codex: "SpawnCsv fan-out (map-reduce)", claude: "No batch primitive", verdict: "Batch fan-out fills a gap teams can't", anchor: "ch-8" },
+]} />
+
+### What These Decisions Reveal
+
+23 decisions. Five categories.
+
+**Who's watching?** Decisions 6, 9, 10, and 12 all hinge on the same variable: is a human in the loop? Sandbox vs. permission, reviewer vs. classifier, inherited policy vs. leader-mediated, user-controlled vs. agent-initiated. In every case, one answer is right for autonomous execution and the other is right for interactive use. The minimum viable agent needs to know which mode it's in.
+
+**What does the model see?** Decisions 1, 2, 3, 4, 5, 7, and 8 shape the prompt before the model generates a single token. Caching strategy, tool count, approval shortcuts, lifecycle hooks, and skill systems. These decisions determine cost-per-turn, the model's decision space, and how users customize behavior without touching source code.
+
+**How much should the agent do on its own?** Decisions 13, 16, 17, 18, and 19 reveal a spectrum from passive to proactive. Codex stays passive: the user drives, the agent responds. Claude Code pushes toward autonomy: the agent schedules its own work, consolidates its own memory, and develops a visible personality. The proactive direction has harder, more interesting problems.
+
+**How do agents compose?** Decisions 11, 14, 15 are about scaling beyond a single loop. Concurrent tool execution, context management under pressure, multi-agent topology, and protocol roles. These are the decisions that matter at production scale.
+
+**Where is it going?** Decisions 20, 21, 22, and 23 are about what happens after the loop works. Persistent sessions, external communication, code-based orchestration, and batch execution. Both teams agree the terminal is too small. They disagree about whether the agent should persist locally or through the cloud, and who should control it.
+
+### The Minimum Viable Agent Loop
+
+<CodeBlock client:visible code={`while True:
+    response = call_model(messages)
+    tool_calls = parse_tools(response)
+    if not tool_calls:
+        return response
+    for call in tool_calls:
+        if not permitted(call):
+            continue
+        result = execute(call)
+        messages.append(result)`} />
+
+Everything else in this post exists to make that loop work in production.

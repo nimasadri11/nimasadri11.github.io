@@ -1,0 +1,16 @@
+---
+interface Props {
+  title: string;
+  hook?: string;
+}
+const { title, hook } = Astro.props;
+---
+<details class="deep-dive">
+  <summary>
+    {title}
+    {hook && <span style="color: var(--text-muted); font-weight: 400; font-size: 0.85rem;"> — {hook}</span>}
+  </summary>
+  <div class="deep-dive-content">
+    <slot />
+  </div>
+</details>

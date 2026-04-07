@@ -1,0 +1,40 @@
+---
+import Article from '../layouts/Article.astro';
+import ProgressBar from '../components/ProgressBar.tsx';
+import Prologue from '../content/part2/prologue.mdx';
+import Ch1 from '../content/part2/ch1-runtime.mdx';
+import Ch2 from '../content/part2/ch2-terminal.mdx';
+import Ch3 from '../content/part2/ch3-platform.mdx';
+import Epilogue from '../content/part2/epilogue.mdx';
+
+const sections = [
+  { id: 'prologue', label: 'Prologue' },
+  { id: 'ch-1', label: '1. Runtime' },
+  { id: 'ch-2', label: '2. Terminal' },
+  { id: 'ch-3', label: '3. Platform' },
+  { id: 'epilogue', label: 'Epilogue' },
+];
+---
+<Article title="The Annotated Coding Agent: The Engineering" subtitle="Part 2 — How two teams solved the same engineering problems differently.">
+  <ProgressBar client:load sections={sections} />
+
+  <section id="prologue" class="act-section prose">
+    <Prologue />
+  </section>
+
+  <section id="ch-1" class="act-section prose">
+    <Ch1 />
+  </section>
+
+  <section id="ch-2" class="act-section prose">
+    <Ch2 />
+  </section>
+
+  <section id="ch-3" class="act-section prose">
+    <Ch3 />
+  </section>
+
+  <section id="epilogue" class="act-section prose">
+    <Epilogue />
+  </section>
+</Article>

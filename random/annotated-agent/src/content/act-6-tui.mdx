@@ -1,0 +1,95 @@
+import CodeComparison from '../components/CodeComparison.tsx';
+import Verdict from '../components/Verdict.astro';
+import DeepDive from '../components/DeepDive.astro';
+
+## Act 6: The Terminal UI
+
+> **7. The Terminal UI.** An agent CLI needs to render streaming text, display code diffs, show approval dialogs, and accept user input, all in a terminal. The UI must handle rapid updates during streaming without flickering, render rich content (markdown, syntax-highlighted code, diffs) in a character-cell grid, and present permission prompts that interrupt the flow without losing context. Two paradigms dominate terminal UI: immediate-mode rendering (draw every frame from state) and retained-mode rendering (describe what the UI should look like, let a framework diff and patch).
+
+A terminal is 80 columns wide and has no GPU. Every pixel is a character cell. You're rendering streaming markdown, syntax-highlighted diffs, and modal approval dialogs into this grid while tokens arrive at hundreds per second. The engineering challenge is real: how do you build a responsive, rich UI in a medium designed for `ls` output?
+
+The two CLIs chose opposite paradigms. Codex paints every frame from scratch. Claude Code describes a component tree and lets a reconciler figure out what changed. Both work. The tradeoffs are instructive.
+
+### Decision 14: UI Framework
+
+This is the biggest architectural split between the two projects.
+
+Codex uses ratatui, a Rust library for immediate-mode terminal rendering. The app owns a main event loop that polls for input, updates state, then calls `draw()` on every frame. Inside that draw call, widgets paint themselves onto a rectangular buffer. A frame-rate limiter caps rendering at 120 FPS so the loop doesn't burn CPU redrawing identical state. The code reads like a game engine: poll, update, render, repeat.
+
+Claude Code uses React. Specifically, they built their own terminal renderer based on Ink (the React-for-terminals library). The entire UI is a tree of React components: messages, permission dialogs, the input area, status bars. When state changes, React diffs the component tree and patches only the cells that changed. The terminal becomes a render target for a virtual DOM.
+
+<CodeComparison client:visible
+  codex={`// Codex: immediate-mode (ratatui)
+loop:
+  event = poll_input()
+  update_state(event)
+  terminal.draw(|frame| {
+    chat.render(frame, top_area)
+    input.render(frame, bottom_area)
+  })  // repaint from state, capped at 120fps`}
+  claude={`// Claude Code: declarative (React + custom Ink)
+function REPL() {
+  return (
+    <ScrollBox>
+      <Messages messages={state.messages} />
+      <PermissionDialog if={pending} />
+      <PromptInput onSubmit={send} />
+    </ScrollBox>
+  )
+}  // React diffs and patches terminal cells`}
+/>
+
+<Verdict>
+  <p>Both paradigms work well for this problem. Immediate-mode is simpler to reason about (no reconciler, no virtual DOM, no component lifecycle), and it's the natural fit for Rust. Declarative wins when the UI is complex enough that manually tracking "what changed" becomes error-prone. Claude Code's UI has 30+ message component types, nested permission dialogs, and background task panels. At that complexity, React's automatic diffing pays for itself. If your CLI's UI fits in a few hundred lines, go immediate-mode. If you're building something with the surface area of a chat app, consider a component framework.</p>
+</Verdict>
+
+### Decision 15: Streaming Text Display
+
+Tokens arrive one at a time during generation. The UI needs to append them smoothly without re-rendering the entire conversation history on every token.
+
+Codex splits the display into "committed cells" and an "active cell." Committed cells are finalized messages that never re-render. The active cell is the message currently being streamed. Only the active cell updates as tokens arrive. When generation finishes, the active cell gets committed and frozen. A revision counter tracks active-cell mutations so overlay views (like the transcript) know when to refresh their cached copy.
+
+Claude Code renders each message as a React component. Streaming messages update their props as tokens arrive. The React compiler (they use it) and manual memoization ensure that unchanged messages skip re-rendering. A memo on the logo header prevents a dirty flag from cascading through 2800+ message components. Virtual scrolling means only visible messages render at all.
+
+<CodeComparison client:visible
+  codex={`// Codex: committed vs active cell
+cells = [frozen, frozen, frozen]  // never re-render
+active = StreamingCell(tokens)    // updates on each token
+on_complete:
+  cells.push(active.freeze())
+  active = None`}
+  claude={`// Claude Code: memoized component tree
+<Messages>            // virtual list
+  <Msg key=1 />      // memo'd, skipped
+  <Msg key=2 />      // memo'd, skipped
+  <Msg key=3 streaming={true} />  // re-renders
+</Messages>           // only visible msgs mount`}
+/>
+
+<Verdict>
+  <p>The committed/active split is a clean pattern that works in any framework. If you're building a streaming chat UI, steal it: treat the conversation history as immutable and only re-render the message being generated. Claude Code achieves the same result through React's memoization, but the mental model is less explicit. You have to understand the memo boundaries to know why performance is good. The explicit freeze-on-complete pattern is easier to audit.</p>
+</Verdict>
+
+### Decision 16: Rich Content Rendering
+
+Both CLIs need to render markdown, syntax-highlighted code, and colored diffs inside a character grid. The approaches differ more in execution than in concept.
+
+Codex feeds markdown through pulldown-cmark (a streaming CommonMark parser) and converts events into ratatui styled spans. Code blocks get syntax-highlighted by syntect. Diffs use the diffy library with a theme-aware color palette that adapts to the terminal's background: dark terminals get muted tints, light terminals get GitHub-style pastels. The renderer detects truecolor, 256-color, and 16-color terminals and provides distinct palettes for each so diffs look right everywhere.
+
+Claude Code has a custom markdown renderer and a highlighted-code component with fallback paths. Diffs render through a structured-diff component. The input area supports full vim keybindings: normal mode, insert mode, operators (delete, change, yank), motions (word, line, find), text objects (`iw`, `a"`), dot-repeat, and a register for copy/paste. The vim implementation is a clean state machine with TypeScript's discriminated unions enforcing exhaustive handling of every state transition.
+
+<Verdict>
+  <p>The diff rendering in Codex is worth studying. Detecting terminal color depth and providing three separate palettes (truecolor, 256, 16) is the kind of detail that makes a CLI feel polished. Most developers never think about this. The vim mode in Claude Code is a power-user feature with real ROI: users who live in the terminal expect vim keybindings, and half-baked vim support is worse than none. If you're going to do it, do it properly with a state machine and all the motions. Otherwise, don't.</p>
+</Verdict>
+
+<DeepDive title="The Custom Ink Fork" hook="why Claude Code rebuilt React-for-terminals">
+
+Claude Code didn't just import Ink as a dependency. Their `src/ink/` directory contains 50+ files: a full React reconciler, a custom DOM with element types like `ink-box`, `ink-text`, and `ink-link`, a layout engine backed by yoga (Facebook's flexbox implementation), a renderer that diffs screen buffers frame-to-frame, a terminal abstraction with scroll state management, and an event system with capture/bubble dispatching.
+
+Why rebuild all of this? The comment trail tells the story. The renderer reuses a character cache across frames so lines that didn't change skip re-tokenization. Scroll boxes track a `scrollTop` offset with velocity-limited drain (so fast scrolling shows intermediate frames instead of one jump). The DOM nodes carry dirty flags that cascade through the tree, with careful memos to prevent a single state change from invalidating thousands of sibling message nodes.
+
+This is the cost of building a complex UI in the terminal. At some point, Ink's default rendering wasn't fast enough, or flexible enough, or correct enough for a chat application with thousands of messages, streaming updates, permission modals, and background tasks. So they forked it and optimized the hot paths. The reconciler connects to React 19's scheduler. The layout engine computes flexbox in native code. The screen diffing avoids rewriting cells that haven't changed.
+
+The lesson: if your terminal UI is simple, use a library off the shelf. If you're building something closer to a full application, expect to own the rendering pipeline eventually. Codex avoided this by choosing immediate-mode rendering, where the application already owns the full pipeline by design.
+
+</DeepDive>

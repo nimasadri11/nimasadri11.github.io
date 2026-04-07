@@ -1,0 +1,70 @@
+---
+import Article from '../layouts/Article.astro';
+import ProgressBar from '../components/ProgressBar.tsx';
+import Prologue from '../content/part1/prologue.mdx';
+import Ch1 from '../content/part1/ch1-prompt.mdx';
+import Ch2 from '../content/part1/ch2-context.mdx';
+import Ch3 from '../content/part1/ch3-security.mdx';
+import Ch4 from '../content/part1/ch4-swarm.mdx';
+import Ch5 from '../content/part1/ch5-stream.mdx';
+import Ch6 from '../content/part1/ch6-memory.mdx';
+import Ch7 from '../content/part1/ch7-voice.mdx';
+import Ch8 from '../content/part1/ch8-future.mdx';
+import Epilogue from '../content/part1/epilogue.mdx';
+
+const sections = [
+  { id: 'prologue', label: 'Prologue' },
+  { id: 'ch-1', label: '1. Prompt' },
+  { id: 'ch-2', label: '2. Context' },
+  { id: 'ch-3', label: '3. Security' },
+  { id: 'ch-4', label: '4. Swarm' },
+  { id: 'ch-5', label: '5. Stream' },
+  { id: 'ch-6', label: '6. Memory' },
+  { id: 'ch-7', label: '7. Voice' },
+  { id: 'ch-8', label: '8. Future' },
+  { id: 'epilogue', label: 'Epilogue' },
+];
+---
+<Article title="The Annotated Coding Agent" subtitle="Comparing the architectures of Codex CLI and Claude Code.">
+  <ProgressBar client:load sections={sections} />
+
+  <section id="prologue" class="act-section prose">
+    <Prologue />
+  </section>
+
+  <section id="ch-1" class="act-section prose">
+    <Ch1 />
+  </section>
+
+  <section id="ch-2" class="act-section prose">
+    <Ch2 />
+  </section>
+
+  <section id="ch-3" class="act-section prose">
+    <Ch3 />
+  </section>
+
+  <section id="ch-4" class="act-section prose">
+    <Ch4 />
+  </section>
+
+  <section id="ch-5" class="act-section prose">
+    <Ch5 />
+  </section>
+
+  <section id="ch-6" class="act-section prose">
+    <Ch6 />
+  </section>
+
+  <section id="ch-7" class="act-section prose">
+    <Ch7 />
+  </section>
+
+  <section id="ch-8" class="act-section prose">
+    <Ch8 />
+  </section>
+
+  <section id="epilogue" class="act-section prose">
+    <Epilogue />
+  </section>
+</Article>

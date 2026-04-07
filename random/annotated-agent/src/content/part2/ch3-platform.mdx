@@ -1,0 +1,333 @@
+import CodeComparison from '../../components/CodeComparison.tsx';
+import Verdict from '../../components/Verdict.astro';
+import DeepDive from '../../components/DeepDive.astro';
+
+## Chapter 3: The Platform Layer
+
+> **The Platform Layer.** Beyond the core architecture, each team built features the other didn't. These unique capabilities reveal each team's theory of what an agent CLI should become. This chapter also covers the engineering fundamentals: streaming transport, error recovery, and session persistence.
+
+Every agent CLI starts with the same skeleton: read a prompt, call a model, run tools, loop. The previous chapters covered shared concerns. This chapter covers two things: the engineering plumbing that connects the agent to the outside world (transport, error handling, persistence), and the features each team grew that the other didn't. These unique features are the most revealing part of the codebase, because nobody builds a feature they don't believe in. Each one is an implicit argument about what agent CLIs will become.
+
+### Streaming Transport
+
+How do tokens get from the API to the CLI? The two systems made different bets.
+
+Codex opens a persistent WebSocket connection on the first request and reuses it across turns. A routing header pins the client to the server instance holding its cached state, so every turn hits a warm cache. When the WebSocket fails, a sticky flag flips the session to HTTP server-sent events for all remaining turns. Two transports, preference-ordered, with automatic degradation.
+
+Claude Code uses HTTP server-sent events for every request. Each turn opens a new connection, receives events, and closes. No persistent connection, no routing affinity, no fallback logic needed because there's only one transport to fail.
+
+<CodeComparison client:visible
+  codex={`// Codex: WebSocket with HTTP fallback
+conn = get_or_create_websocket()       // reuse across turns
+conn.route_to = "same_server"          // sticky routing for warm cache
+response = conn.send(prompt)
+
+on_websocket_failure:
+  disable_websockets = true            // sticky flag
+  response = http_sse(prompt)          // all future turns use SSE`}
+  claude={`// Claude Code: HTTP SSE only
+response = http_post(prompt, stream=true)
+for event in response.sse_events:
+  yield process(event)
+// connection closes, next turn opens a new one`}
+/>
+
+<Verdict>
+  <p>WebSocket gives Codex lower latency and session affinity. The persistent connection avoids TCP+TLS handshake on every turn, and sticky routing keeps the client pinned to warm server-side caches. SSE is simpler and more firewall-friendly. For a CLI tool running on developer machines behind corporate proxies and VPNs, SSE is the pragmatic choice. WebSocket pays off at scale or in IDE integrations where connection lifetime matches editor session lifetime. If you're building an agent, start with SSE. Add WebSocket when latency profiling shows the handshake is your bottleneck.</p>
+</Verdict>
+
+### Error Recovery
+
+Both systems need to handle API failures, context window overflow, rate limits, and model errors. The question is how aggressively to recover before surfacing the failure to the user.
+
+Codex wraps each request in a retry loop with exponential backoff. If the WebSocket connection fails repeatedly, it falls back to HTTP and resets the retry counter. If the context window overflows, it compacts the conversation. Rate limit headers are captured and respected.
+
+Claude Code layers three recovery strategies. When the model hits its output token limit, the system injects a "please continue" message and loops (up to 3 times). When the prompt is too long, it compresses context. When the primary model is overloaded, it falls back to a cheaper model and retries.
+
+<CodeComparison client:visible
+  codex={`// Codex: backoff + transport fallback
+retry with backoff
+if websocket_fails_3x: switch_to_http
+if context_overflow: summarize_conversation
+if rate_limited: wait(retry_after)`}
+  claude={`// Claude Code: layered recovery
+if output_truncated: send("continue") // up to 3x
+if prompt_too_long: compress_context
+if api_overloaded: downgrade_model    // e.g. Opus -> Sonnet
+if rate_limited: wait(retry_after)`}
+/>
+
+<Verdict>
+  <p>Model downgrade under load is a practical pattern worth copying. Users care about responsiveness more than which specific model answers. The "continue" message for truncated output is cheap insurance. Transport fallback (WebSocket to HTTP) solves a problem specific to Codex's dual-transport architecture, but the principle generalizes: always have a degraded path that keeps the user unblocked.</p>
+</Verdict>
+
+### Loop Continuation
+
+When should the agent proactively manage its context window?
+
+Codex checks the token count before each turn. If it's approaching the limit, it compresses the conversation before sending the next request. Proactive: the API never sees a prompt that's too long.
+
+Claude Code waits for the API to reject the prompt as too long, then compresses. Reactive: no work is wasted on compaction that turns out to be unnecessary.
+
+<Verdict>
+  <p>Proactive avoids errors. Reactive avoids unnecessary work. If your compaction is cheap (token counting + truncation), be proactive. If it's expensive (LLM summarization), be reactive. Codex can afford proactive because it tracks token counts locally. Claude Code's compaction involves an LLM call, so waiting until it's needed makes sense.</p>
+</Verdict>
+
+### Session Persistence
+
+Every conversation produces a transcript. The question is what form it takes and how much structure the system imposes on top of it.
+
+Codex stores sessions as append-only JSONL files organized by date. Each event (model response, tool call, metadata change) gets one line. Resume means replaying the file from the top. Fork means copying events up to a point and continuing from there. A SQLite database mirrors metadata from the JSONL files for fast queries: listing sessions, searching by title, sorting by date. The JSONL files are the source of truth; SQLite is a read-optimized index.
+
+Claude Code builds three layers. First, session transcripts saved as JSON, keyed by UUID so incremental writes don't create duplicates. Second, a background "session memory" subagent that periodically reads the conversation and writes a running summary to a markdown file. This summary survives context compaction, so even when the conversation is compressed to fit the context window, key decisions are preserved. Third, a persistent memory system that carries knowledge across sessions entirely.
+
+<CodeComparison client:visible
+  codex={`// Codex: append-only event log
+for each event in session:
+  append_jsonl(session_file, event)
+// resume: replay events from file
+// fork: copy events to new file, continue
+// SQLite mirrors metadata for fast queries`}
+  claude={`// Claude Code: layered session state
+save_transcript(session_id, messages)
+// periodically:
+if token_growth > threshold:
+  subagent.summarize(conversation)
+  write_file("session_memory.md", summary)
+// summary survives context compaction`}
+/>
+
+<Verdict>
+  <p>Append-only JSONL is the right default for session transcripts. It is append-only, crash-safe, and trivial to debug by reading the file directly. The session memory subagent is a separate concern: it solves the context compaction problem, where a long conversation gets compressed and loses important details. If your agent supports long sessions with compaction, you need something like this. If sessions are short or you do not compact, skip it.</p>
+</Verdict>
+
+---
+
+### Codex: Deeper Into the System
+
+Codex's unique features push downward, toward the operating system. The pattern: intercept more, control more, trust the network less.
+
+### The Network Proxy
+
+Codex runs a full man-in-the-middle HTTP/HTTPS proxy. Every network request from a sandboxed process routes through it. This is not a firewall rule that blocks ports. It is a proxy that terminates TLS, inspects the inner HTTP request, and decides whether to forward it.
+
+The proxy generates a local certificate authority on first run, then mints per-host leaf certificates on the fly. When a sandboxed process opens a TLS connection to `api.example.com`, the proxy intercepts the CONNECT tunnel, presents a generated certificate for that host, terminates the client's TLS, inspects the HTTP method and path, checks domain policy, and only then opens a real TLS connection upstream.
+
+```
+sandbox_process  →  CONNECT api.example.com:443
+                 ←  200 OK (tunnel established)
+                 →  TLS handshake (proxy's generated cert)
+                 →  GET /v1/data HTTP/1.1
+                            ↓
+                    proxy checks: is api.example.com allowed?
+                    proxy checks: is GET allowed in this mode?
+                            ↓
+                    if allowed: open real TLS to api.example.com, forward
+                    if blocked: return 403 with reason
+```
+
+The proxy also defends against DNS rebinding. A domain might resolve to a public IP during the CONNECT handshake, then resolve to `127.0.0.1` when the inner request fires. The proxy re-checks whether the resolved address is local/private on every inner request, not just at CONNECT time.
+
+Why build this? Because process-level sandboxing can only block network access entirely or allow it entirely. A sandbox that says "no network" breaks legitimate API calls. A sandbox that says "full network" lets a compromised model exfiltrate data. The MITM proxy lets you say "network, but only to these domains, and only GET requests." That granularity requires terminating TLS.
+
+Claude Code doesn't have a network proxy. Its sandbox relies on OS-level network policies (macOS sandbox profiles, Linux network namespacing) that operate at the connection level, not the HTTP level. It can block outbound connections to specific ports or ranges, but it can't distinguish a GET from a POST to the same host.
+
+<Verdict>
+  <p>The MITM proxy is the right architecture if you're running agents unattended. "Allow network access to npm but only GET" is a policy you can't express with firewall rules. The cost is real: generating a CA, managing certificates, and terminating every TLS connection adds latency and complexity. For interactive use where a human reviews commands, the simpler approach of OS-level network blocking is fine. For autonomous agents that run overnight, per-domain HTTP-level policy is worth the complexity.</p>
+</Verdict>
+
+### The Exec Policy DSL
+
+Codex built a standalone policy engine with its own language for declaring which commands an agent can run. The language is Starlark (Python's restricted subset, the same language Bazel uses for BUILD files). Policy authors declare rules that match command prefixes, support alternative tokens, and specify allow/deny/prompt decisions.
+
+```python
+# Example exec policy file (Starlark)
+allow("git", "status")
+allow("git", "diff")
+allow("git", "log")
+allow("git", "commit", ["-m", "--message"])
+deny("rm", "-rf", "/")
+prompt("npm", "publish")
+```
+
+The engine does more than string matching. When it sees a command like `/usr/bin/git status`, it resolves the binary path and matches it against the `git` rule by looking up known executable locations on the host. This handles the gap between how users write rules (short names) and how sandboxed processes invoke commands (full paths).
+
+Rules support alternative tokens via bracket syntax. A rule like `git commit [-m|--message]` matches both flag forms. The engine also supports match/not-match examples inline, so policy authors can write test cases that the parser validates at load time.
+
+Claude Code uses JSON-based permission rules embedded in its configuration files. These are simpler (tool name + optional path pattern) and don't support the pattern matching or path resolution that Codex's Starlark DSL provides.
+
+<Verdict>
+  <p>Starlark is a strong choice for a policy language. It's familiar (Python syntax), deterministic (no side effects, no I/O), and already proven at scale in the Bazel ecosystem. The tradeoff: users need to learn it. JSON permission rules are easier to start with but hit their ceiling fast. If your policy needs grow beyond "allow this tool," a real expression language pays for itself. The inline test cases (match examples validated at parse time) are a pattern worth adopting regardless of language choice.</p>
+</Verdict>
+
+### The App Server
+
+Codex built a full JSON-RPC server that decouples the agent brain from any particular UI. The server speaks stdio (for piped connections), WebSocket (for IDE extensions), and a remote control protocol (for cloud-driven sessions). The TUI and any IDE extension are both clients of this same server.
+
+```
+┌──────────┐     stdio      ┌─────────────┐
+│   TUI    │ ──────────────►│             │
+└──────────┘                │             │
+                            │  App Server │──► model API
+┌──────────┐   WebSocket    │  (JSON-RPC) │──► sandbox
+│ VS Code  │ ──────────────►│             │──► tools
+└──────────┘                │             │
+                            │             │
+┌──────────┐  remote ctrl   │             │
+│ ChatGPT  │ ──────────────►│             │
+└──────────┘                └─────────────┘
+```
+
+The server manages threads (conversations), connection lifecycle (multiple clients can connect simultaneously), graceful shutdown with drain (waits for running turns to finish before killing connections), and configuration hot-reloading. It exposes APIs for filesystem operations, fuzzy file search, and dynamic tool registration. A new client can connect, call `initialize`, and get a full agent session with no setup beyond the RPC handshake.
+
+This architecture means a single running Codex process can serve the terminal, an IDE, and a cloud backend simultaneously. New UIs don't require new agent implementations.
+
+Claude Code took the opposite approach. Instead of a server that UIs connect to, it embeds directly into each environment. The VS Code extension runs Claude Code as a subprocess. The web/mobile bridge is a separate subsystem. Each integration gets a tailored connection rather than a generic protocol.
+
+### Local Model Support
+
+Codex ships dedicated client implementations for LM Studio and Ollama. These are not "point the API URL at localhost" wrappers. Each client handles server discovery (checking known install paths, probing health endpoints), model listing, model downloading/pulling with progress reporting, and version detection.
+
+The Ollama client handles the distinction between Ollama's native API and its OpenAI-compatible endpoint. It streams pull progress events and drives a progress reporter. The LM Studio client finds the binary in PATH or fallback locations, can download models via the CLI, and validates server responsiveness before the agent tries to use it.
+
+Claude Code doesn't ship local model support. It connects to Anthropic's API or configured third-party providers but doesn't manage local model servers.
+
+<Verdict>
+  <p>Local model support is table stakes for an open-source agent CLI. Users who run local models don't want to configure raw API endpoints; they want "it works with my Ollama setup." The dedicated clients with health checking and model pulling are the right UX. If you're building an agent CLI that only talks to one provider's API, you don't need this. If you want to be model-agnostic, build it early.</p>
+</Verdict>
+
+### Codex as MCP Server
+
+Codex can run as an MCP (Model Context Protocol) server, meaning other AI tools can use Codex as a tool. The MCP server reads JSON-RPC messages from stdin, processes them through the same message processor and tool runner the regular agent uses, and writes responses to stdout. Another agent calls Codex the way Codex calls grep.
+
+This inverts the usual relationship: instead of Codex orchestrating tools, Codex becomes a tool in someone else's orchestration. The implementation reuses the core config, exec policy, and tool infrastructure. It's the same agent, wrapped in a different protocol.
+
+---
+
+### Claude Code: Richer Developer Experience
+
+Claude Code's unique features push outward, toward the developer's workflow. The pattern: integrate with more tools, automate more surfaces, give the user more control.
+
+### LSP Integration
+
+Claude Code includes a full Language Server Protocol tool. The model can ask for go-to-definition, find-references, hover information, document symbols, workspace symbols, call hierarchy, and implementations. The tool manages LSP server lifecycle, opens files in the server before querying, and formats results for the model to consume.
+
+```
+model calls: LSPTool({
+  operation: "findReferences",
+  filePath: "src/auth.ts",
+  line: 42,
+  character: 12
+})
+
+Claude Code:
+  1. ensures LSP server is running for .ts files
+  2. opens the file in the LSP if not already open
+  3. sends textDocument/references request
+  4. filters results through git check-ignore
+  5. formats locations as file:line snippets
+  6. returns structured result to model
+```
+
+The tool filters out gitignored files from results (so the model doesn't chase references into `node_modules`), handles the two-step call hierarchy protocol (prepare, then fetch), and converts between 1-based line numbers (what humans use) and 0-based (what LSP uses).
+
+This gives the model IDE-quality code navigation without reading entire files. Instead of grepping for a function name and hoping, the model can jump to the exact definition, find all callers, and understand the type signature from hover info.
+
+Codex relies on grep and file reading for code navigation. Its tool set doesn't include anything that talks to a language server.
+
+<Verdict>
+  <p>LSP integration is one of the highest-leverage features an agent CLI can have. A go-to-definition call returns exactly the information the model needs; a grep search returns that plus dozens of irrelevant matches. The model wastes fewer tokens, makes fewer mistakes, and navigates unfamiliar codebases faster. The implementation cost is moderate (managing LSP server lifecycle and protocol details), but the payoff is large. Build this early if your agent works with code.</p>
+</Verdict>
+
+### Git Worktree Isolation
+
+Claude Code can spawn child agents in separate git worktrees. Each worktree gets its own branch and working directory while sharing the repository's object store. The parent's working directory stays untouched. When the child finishes, its changes can be reviewed before merging.
+
+The implementation validates worktree slugs to prevent path traversal (a slug like `../../etc` would escape the worktrees directory), symlinks large directories like `node_modules` to avoid duplication, copies settings files so the child inherits the parent's configuration, and registers cleanup hooks to remove the worktree when the agent exits.
+
+```
+main working directory:  ~/project          (on branch main)
+child worktree:          ~/project/.claude/worktrees/fix-auth  (on branch fix-auth)
+                         ├── node_modules → ~/project/node_modules (symlink)
+                         ├── .claude/settings.json (copied)
+                         └── ... (separate working tree, shared .git)
+```
+
+This solves a real problem: when an agent edits files in your working directory, you can't work at the same time. Worktree isolation lets the agent make changes on a separate branch while you keep coding on yours. It also makes it safe to run multiple agents in parallel without them stepping on each other's file edits.
+
+Codex doesn't have worktree isolation. Child agents operate in the same working directory as the parent.
+
+<Verdict>
+  <p>Worktree isolation is the right answer for parallel agent work. Git worktrees are cheap (they share the object store) and the isolation is real (separate working trees, separate branches). The symlink optimization for node_modules is a nice touch that avoids the disk cost of duplication. If your agent supports sub-agents or background tasks that edit files, worktree isolation should be in your first release.</p>
+</Verdict>
+
+### Computer Use
+
+Claude Code includes a desktop automation executor. The agent can take screenshots, move the mouse, click, type, and interact with GUI applications. This is not shell automation; it's actual control of the graphical desktop.
+
+The implementation wraps two native modules: a Rust-based input driver (mouse and keyboard) and a Swift-based screenshot/app manager (using macOS's ScreenCaptureKit). It handles the gap between logical and physical coordinates (Retina displays), excludes the terminal from screenshots so the agent sees the target application rather than itself, manages clipboard operations since there's no Electron clipboard, and coordinates with the model's computer-use API for coordinate mapping.
+
+This turns the agent from a terminal-only tool into something that can interact with any application: fill out a web form, test a GUI app, configure an IDE. The agent can see what's on screen and act on it.
+
+Codex doesn't have computer use. It operates entirely within the terminal and filesystem.
+
+### The Bridge
+
+Claude Code includes a remote access system called "the bridge." A local CLI session can be controlled from a web browser or mobile device. The bridge handles JWT authentication, trusted device management, session spawning, and WebSocket transport.
+
+The architecture: a local session registers with a remote service. The remote service holds work items. The bridge polls for work, spawns sessions to handle it, and streams results back. Users authenticate devices via one-time tokens. Work secrets are decoded to establish SDK connections back to the model API.
+
+This solves the "I started a task on my laptop, now I'm on my phone" problem. The agent keeps running locally (with access to local files, git, tools), but the conversation interface moves to wherever the user is.
+
+Codex solved a similar problem differently, through the app server's remote control transport. Both enable remote access, but through different architectures: Codex makes the agent a server that remote clients connect to; Claude Code makes the agent a worker that polls a remote coordinator.
+
+<Verdict>
+  <p>Both approaches work. Codex's server model is simpler conceptually (one protocol, direct connection), but requires the server to be reachable from the network. Claude Code's polling model works through firewalls and NATs since the local agent initiates the connection outward. For consumer use where agents run on laptops behind home routers, the polling model is more practical. For enterprise use where agents run on accessible servers, the direct connection model is cleaner.</p>
+</Verdict>
+
+### Vim Mode and Rebindable Keys
+
+Claude Code implements a full vim mode for its input system. This is not a "press Escape to enter normal mode" wrapper. It's a state machine with motions (`h`, `l`, `w`, `b`, `e`, `0`, `$`), operators (`d`, `c`, `y`), text objects, find motions (`f`, `F`, `t`, `T`), dot-repeat, registers, and proper mode transitions between INSERT and NORMAL. The state machine tracks pending operators, accumulates counts, and records changes for replay.
+
+On top of this, Claude Code has a full keybinding system. Bindings support chord sequences (press `Ctrl+K` then `Ctrl+S`), context-aware resolution (different bindings in chat vs. editor), user overrides that shadow defaults, and explicit unbinding (set a binding to null to remove the default). The resolver handles the ambiguity of "is this the first key of a chord or a standalone binding?" by checking whether any longer chord starts with the current prefix.
+
+```
+user presses: Ctrl+K
+resolver checks: any chord starting with Ctrl+K?
+  yes → enter chord_started state, wait for next key
+user presses: Ctrl+S
+resolver checks: Ctrl+K Ctrl+S matches a binding?
+  yes → fire the bound action
+
+user presses: Ctrl+K
+resolver checks: any chord starting with Ctrl+K?
+  no longer chords exist → fire single-key Ctrl+K binding immediately
+```
+
+Codex doesn't have vim mode or rebindable keybindings. Its TUI uses fixed key mappings.
+
+<Verdict>
+  <p>Vim mode is a love letter to power users. Most developers won't use it. The ones who do will be furious without it. If you're building a terminal-first tool aimed at developers, this is worth the investment. The keybinding system is independently valuable: once users can remap keys, they stop filing bugs about key conflicts with their terminal emulator. Chords are tricky to implement (the timeout ambiguity between "prefix of a chord" and "standalone key") but Claude Code's prefix-checking approach is clean.</p>
+</Verdict>
+
+<DeepDive title="The IDE Integration Story" hook="two opposite approaches to the same problem">
+
+Both systems want to work inside IDEs. They took opposite approaches that reveal different philosophies.
+
+Codex built a headless server (the app server described above). The IDE extension is a thin client that connects via JSON-RPC over stdio or WebSocket. The server manages all state. The extension sends user messages and renders responses. This is the same pattern as the Language Server Protocol itself: a server that any editor can talk to through a standard protocol.
+
+Claude Code embedded itself directly. The VS Code extension runs the CLI as a subprocess and communicates through its bridge system. There is no generic protocol layer between the extension and the agent. The extension has access to VS Code's full API: selections, open files, diagnostics, terminal state.
+
+The tradeoff is clean separation vs. deep integration. Codex's approach means writing one server and N thin clients. But the server can only access what the client sends it. Claude Code's approach means writing N deep integrations. But each one can access everything the IDE knows.
+
+In practice, the app server approach is better for reaching many editors quickly (VS Code, JetBrains, Neovim). The embedded approach is better for one IDE done well. Most teams should start with the server approach for reach, then build deeper integrations for the IDEs that matter most.
+
+</DeepDive>
+
+### What the Differences Reveal
+
+Codex's unique features are infrastructure. The MITM proxy, the policy DSL, the app server, and local model support all push the agent deeper into the system. They reflect a belief that the agent will run autonomously, unattended, in environments that need to be locked down and controlled. The agent is a service.
+
+Claude Code's unique features are developer experience. LSP integration, worktree isolation, computer use, remote access, and customizable input all push the agent closer to the developer. They reflect a belief that the agent is a partner in an interactive workflow, that it needs to see what the developer sees, work where the developer works, and fit the developer's habits. The agent is a collaborator.
+
+Both are right about the future. Agents will run unattended AND interactively. The teams that build both infrastructure and experience will win. The ones that pick a side will serve half the market.
