@@ -193,11 +193,12 @@ stdin.read(json_rpc_request)
 result = thread_manager.call_tool(request)
 stdout.write(json_rpc_response)`}
   claude={`# Claude Code: client only
-# Connect to tool servers, wrap as native tools
+# connect to tool servers, wrap as native tools
 for server in mcp_servers:
     client = connect(server, transport)
     for tool in client.list_tools():
-        native = wrap(tool)    # same interface as built-ins
+        # same interface as built-in tools
+        native = wrap(tool)
         native.permissions = same_as_builtin
         native.hooks = same_as_builtin
         register(native)`}

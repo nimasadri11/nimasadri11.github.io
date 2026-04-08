@@ -18,15 +18,19 @@ Claude Code manages cache boundaries on the client side. The system prompt is sp
 
 <CodeComparison client:visible
   codex={`# Codex: server-side caching
-request.previous_response_id = last_response.id  # server remembers
-request.route_to_same_server = True               # sticky routing
-# server skips re-processing the prefix`}
+# server remembers the previous response
+request.previous_response_id = last_response.id
+# sticky routing: same server = warm KV cache
+request.route_to_same_server = True`}
   claude={`# Claude Code: client-side cache boundaries
 prompt = [
-    system_prefix,     # stable across turns, cached
-    CACHE_BOUNDARY,    # everything above this is reusable
-    dynamic_context,   # current turn, git status, etc.
-    tools_sorted_alphabetically  # stable ordering for cache hits
+    # stable across turns, cached
+    system_prefix,
+    CACHE_BOUNDARY,
+    # changes per turn
+    dynamic_context,
+    # alphabetical = stable ordering for cache hits
+    tools_sorted_alphabetically,
 ]`}
 />
 

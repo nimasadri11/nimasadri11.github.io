@@ -36,12 +36,16 @@ Codex has no equivalent daemon mode. Codex's Remote Control feature (connecting 
 <CodeBlock client:visible code={`# Claude Code KAIROS lifecycle
 def on_activate():
     system_prompt = "You are an autonomous agent."
-    enable_brief_mode()           # SendUserMessage
-    create_assistant_team()       # agents as teammates
+    # structured output via SendUserMessage
+    enable_brief_mode()
+    # agents become persistent teammates
+    create_assistant_team()
 
-def on_tick(time):               # periodic wake-up
+# periodic wake-up
+def on_tick(time):
     if has_work(): do_work()
-    else: sleep(duration)         # idle, wait for tick
+    # idle, wait for next tick
+    else: sleep(duration)
 
 def on_terminal_blur():
     inject("terminal is unfocused")
@@ -51,10 +55,12 @@ def on_terminal_focus():
     # becomes collaborative: ask before acting
 
 def on_bash_blocking(timeout=15):
-    move_to_background()          # stay responsive
+    # stay responsive, don't block
+    move_to_background()
 
 def on_memory_write():
-    append_to("logs/YYYY/MM/DD.md")  # not MEMORY.md`} />
+    # append-only logs, not MEMORY.md
+    append_to("logs/YYYY/MM/DD.md")`} />
 
 <Verdict>
   <p>Persistent agents are where this is heading. An agent that monitors your CI, watches for review comments, and consolidates learnings while you sleep solves real problems. KAIROS is the clearest signal of where Claude Code thinks agent CLIs go next. Codex may build something similar, but as of now, persistence is a Claude Code bet that Codex hasn't matched. The architectural prerequisite is a memory system that works across sessions (both have this) and a cron scheduler that fires prompts on a schedule (Claude Code has this, Codex's cloud-tasks system addresses a different problem).</p>
