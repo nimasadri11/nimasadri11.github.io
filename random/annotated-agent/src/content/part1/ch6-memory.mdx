@@ -11,13 +11,13 @@ Both systems are building cross-session memory. Claude Code's is shipped. Codex'
 
 ### Decision 16: Cross-Session Memory
 
-Session persistence lets you resume where you left off. Cross-session memory lets the agent remember what you told it last week. The difference is whether accumulated knowledge influences future sessions.
+Session persistence (picking up where you left off) is different from cross-session memory. Memory means the agent learns from past sessions and applies that knowledge to future ones.
 
-**Claude Code** ships a file-based memory system. A memory directory holds markdown files organized by topic. An index file (MEMORY.md) acts as a table of contents and loads into the system prompt. At conversation start, a side-query picks up to five relevant memories to inject into context. "Remember that I prefer explicit error handling" writes a memory file. "Forget what I said about testing" removes it.
+**Claude Code** ships a file-based memory system. A memory directory holds markdown files organized by topic. An index file (`MEMORY.md`) acts as a table of contents and loads into the system prompt. At conversation start, a side-query picks up to five relevant memories to inject into context. "Remember that I prefer explicit error handling" writes a memory file. "Forget what I said about testing" removes it.
 
 **Codex** takes a different approach. Behind the "memories" feature flag sits a two-phase, SQLite-backed pipeline. Phase 1 extracts structured memories from recent sessions: preference signals, reusable knowledge, failures, references. It runs up to eight extractions in parallel.
 
-Phase 2 is consolidation (next section). The output is a hierarchy: `memory_summary.md` for every system prompt (truncated to 5K tokens), a `MEMORY.md` handbook, auto-generated skill files, and per-rollout summaries. Every memory tracks `usage_count` and `last_usage`, so the system knows which memories earn their keep.
+Phase 2 is consolidation (next section). The output is a hierarchy: `memory_summary.md` injected into the system prompt on every turn (truncated to 5K tokens), a `MEMORY.md` handbook, auto-generated skill files, and per-rollout summaries. Every memory tracks `usage_count` and `last_usage`, so the system knows which memories earn their keep.
 
 <CodeComparison client:visible
   codex={`# Codex: automated SQLite pipeline (behind flag)
@@ -39,8 +39,10 @@ if user_said_remember:
 # human-readable markdown all the way down`}
 />
 
+**When memories are fetched and used.** Claude Code loads `MEMORY.md` into the system prompt at conversation start. It then runs a side-query (a cheap, separate API call) to pick up to five relevant memories from the topic files based on the current conversation context. These get injected as additional system prompt content. During the conversation, the agent can read more memory files if it decides they're relevant, or write new ones when the user says "remember this." Codex loads `memory_summary.md` (truncated to 5K tokens) into the developer message on every turn. At session start, a "quick memory pass" runs 4-7 search steps against the SQLite database to find relevant memories. Memories that get used in a session have their `usage_count` incremented, which influences future retention decisions.
+
 <Verdict>
-  <p>Claude Code's file-based approach is the right starting point. Users can read, edit, and debug their agent's memory. The agent manages its own memory through normal file operations. Codex bets on automation: a background pipeline that extracts, scores, and consolidates memories without user intervention. Usage tracking and citation blocks give Codex's system better observability into which memories matter. Start with files. Add usage tracking when you have enough sessions to measure retention.</p>
+  <p>Claude Code's file-based approach is the right starting point. Users can read, edit, and debug their agent's memory. The agent manages its own memory through normal file operations. Codex bets on automation: a background pipeline that extracts, scores, and consolidates memories without user intervention. Usage tracking and citation blocks give Codex's system better observability into which memories matter. If you use Claude Code, check `~/.claude/projects/` to see what your agent remembers. If you use Codex, the memories live in the SQLite database (not yet shipped to users). Start with files. Add usage tracking when you have enough sessions to measure retention.</p>
 </Verdict>
 
 ### Decision 17: Memory Consolidation
@@ -52,11 +54,11 @@ Raw memories accumulate. Without consolidation, the system drowns in redundant, 
 1. **Time gate.** At least 24 hours since the last consolidation.
 2. **Session gate.** At least 5 new sessions since the last run.
 3. **Scan throttle.** No more than one scan every 10 minutes.
-4. **Lock.** A file-based lock using PID and mtime to prevent concurrent consolidations.
+4. **Lock.** A file-based lock using PID and mtime (the file's last-modified timestamp) to prevent concurrent consolidations.
 
 Once all gates pass, the system spawns a subagent with restricted permissions (read-only bash, write access only to memory files) and a four-phase prompt:
 
-**Phase 1: Orient.** The subagent runs `ls` on the memory directory, reads the MEMORY.md index file, and skims existing topic files. The goal is to understand what's already stored before adding anything. If assistant-mode daily log directories exist (`logs/YYYY/MM/`), it reviews recent entries there too. This prevents the most common failure mode: creating a duplicate memory that says the same thing as an existing one in different words.
+**Phase 1: Orient.** The subagent runs `ls` on the memory directory, reads the `MEMORY.md` index file, and skims existing topic files. The goal is to understand what's already stored before adding anything. If assistant-mode daily log directories exist (`logs/YYYY/MM/`), it reviews recent entries there too. This prevents the most common failure mode: creating a duplicate memory that says the same thing as an existing one in different words.
 
 **Phase 2: Gather.** The subagent looks for new information worth persisting, checking three sources in priority order. First, daily log files (the append-only stream from assistant mode sessions). Second, existing memories that have drifted from reality (a memory says "the API uses JWT tokens" but the code switched to session cookies). Third, session transcripts, but only with narrow grep queries (e.g., `grep -rn "build failure" transcripts/ --include="*.jsonl" | tail -50`). The prompt explicitly says "don't exhaustively read transcripts. Look only for things you already suspect matter." Session transcripts are large JSONL files; reading them in full would burn the subagent's context window on noise.
 
