@@ -60,3 +60,28 @@ Streaming tokens is not just about execution speed. Both systems make decisions 
 
 **Codex renders tool output uniformly.** All tool results go through the same formatting pipeline in the TUI. A grep result and a file edit get the same visual treatment. Claude Code has per-tool rendering: a file edit shows a colored diff, a grep shows highlighted matches with file paths, a bash command shows the command and its output separately. Each Claude Code tool implements its own React component for display, so the team can customize how each tool looks without changing a shared renderer.
 
+### How the Agent Tracks Its Own Work
+
+Both systems give the agent a tool to plan multi-step work and track progress. This matters for the loop because the plan influences what the agent does next: which step to start, whether to verify, when to stop.
+
+**Codex calls it `update_plan`.** The agent sends a structured list of steps, each with a description (5-7 words) and a status: `pending`, `in_progress`, or `completed`. Exactly one step can be `in_progress` at a time. The system prompt enforces a strict state machine: no jumping from `pending` directly to `completed`, no batching multiple completions, and no repeating the plan contents after the tool call (the TUI already displays it). The TUI renders the plan as a checklist: `✔` (dim, crossed out) for completed steps, `□` (cyan, bold) for the active step, `□` (dim) for pending.
+
+The system prompt tells the agent when to use plans: non-trivial tasks with multiple phases, work with logical dependencies, tasks with ambiguity, or when the user explicitly asks. Single-step tasks don't get plans. The prompt also says "do NOT pad simple work with filler steps." Plans are for demonstrating understanding and conveying approach, not for making simple tasks look complex.
+
+**Claude Code has two versions of the same concept.** `TodoWrite` (V1, used in SDK and non-interactive sessions) is a simple array of items with `content`, `status`, and `activeForm` (a present-continuous description like "Implementing auth handler" that shows in the UI spinner). `TaskCreate`/`TaskUpdate` (V2, used in interactive CLI sessions) is a richer system built for multi-agent work.
+
+The V2 system adds four things V1 doesn't have:
+
+- **Task IDs and persistence.** Each task gets an auto-incrementing ID. Tasks are stored as JSON files on disk in `.claude/tasks/` with file locking for concurrent access. They survive process restarts.
+- **Ownership.** Tasks can be assigned to specific agents. When a teammate marks a task `in_progress`, it's automatically assigned to that agent. Other teammates call `TaskList` to see what's available and what's blocked.
+- **Dependencies.** Tasks can declare `blocks` and `blockedBy` relationships. A task blocked by another won't be picked up until its dependency completes.
+- **Metadata.** Tasks carry optional metadata (key-value pairs) for additional context.
+
+The prompt guidance for both versions is specific about state transitions. Mark a task complete immediately after finishing, not in batches. If blocked by an error, keep the task `in_progress` and create a new task describing the resolution. Do not mark a task completed if tests are failing, the implementation is partial, there are unresolved errors, or dependencies are missing. The tool result tells the agent what changed (`oldTodos` → `newTodos`), and `TodoWrite` renders nothing in the chat transcript because the task panel shows the state.
+
+**The verification nudge.** Both Codex and Claude Code include the same behavioral check: if the agent completes 3+ steps without any step mentioning "verification" or "verify," the system prompts the agent to spawn a verification subagent before reporting completion to the user. This is how the plan tool connects to the broader agent loop: it doesn't just track progress, it gates the agent's definition of "done."
+
+<Verdict>
+  <p>Plan tracking is one of those features that sounds like project management overhead but changes how the agent works. Without a plan, the agent streams through tasks and the user sees tool calls flying by. With a plan, the user sees which phase the agent is in and can interrupt if the approach is wrong. The verification nudge is the more interesting design: by connecting plan completion to a behavioral rule ("3 items completed without verification → spawn verifier"), both teams turned a UI feature into an architectural constraint. If you use either tool for complex tasks, watch for the plan. If the agent skips planning on a multi-step task, ask it to make one. The plan forces decomposition, and decomposition catches errors earlier.</p>
+</Verdict>
+

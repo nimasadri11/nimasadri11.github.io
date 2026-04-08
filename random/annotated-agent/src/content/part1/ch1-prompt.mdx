@@ -153,14 +153,6 @@ Codex's `request_user_input` tool is structurally similar: it sends a list of qu
 
 Both tools follow the same pattern: the tool call creates a UI prompt, the user's answers flow back as the tool result, and the model continues with structured input instead of parsing free text.
 
-**Task tracking.** Both systems give the agent a way to plan its own work and show progress. The tools are nearly identical in philosophy: break complex work into steps, mark one step in-progress at a time, mark each step complete immediately (no batching), and nudge for verification after three completed steps without a verification task.
-
-Codex calls it `update_plan`. The agent sends a list of steps, each with a status (`pending`, `in_progress`, `completed`). The TUI renders a checklist with checkmarks and cyan highlighting for the active step. The system prompt says: "Plans help demonstrate understanding and convey approach for complex, multi-phase work. Do NOT repeat full plan contents after the call." Plans are for non-trivial work with multiple phases; single-step tasks don't need one.
-
-Claude Code has two versions. `TodoWrite` (for SDK/non-interactive sessions) takes an array of todo items. `TaskCreate`/`TaskUpdate` (for interactive CLI sessions) adds richer features: task IDs, ownership (which agent is working on which task in multi-agent sessions), dependencies (`blocks`/`blockedBy` relationships), and disk persistence in `.claude/tasks/`. The V2 system was built for team mode: when a teammate marks a task `in_progress`, it's automatically assigned to that agent. Other teammates can query `TaskList` to find available work. Both versions auto-expand the task panel in the UI when tasks change.
-
-Both systems include the same verification nudge: if the agent completes 3+ items without a verification step, the system prompt reminds it to spawn a verification agent before reporting completion.
-
 **Idle waiting and structured output (Claude Code only).** Claude Code has two tools that Codex doesn't, both designed for persistent/proactive agent sessions.
 
 The Sleep tool is how a proactive agent idles between work. It's interruptible, costs no shell process, and the prompt warns the model that "each wake-up costs an API call, but the prompt cache expires after 5 minutes." This teaches the model to be cost-aware about its own inference: sleep too short and you waste money on empty wake-ups, sleep too long and the cache goes cold.
