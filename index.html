@@ -46,6 +46,62 @@
             background-size: 256px 256px;
         }
 
+        /* ══════════════════════════════════════
+           FLOATING GEOMETRIC ELEMENTS
+           Abstract shapes in the side margins —
+           scrolls with content, gently floats.
+           ══════════════════════════════════════ */
+        body { position: relative; }
+        .page { position: relative; z-index: 1; }
+        .hero, .section { position: relative; }
+        .geo {
+            position: absolute;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.7;
+        }
+        .hero > *:not(.geo),
+        .section > *:not(.geo) { position: relative; z-index: 1; }
+
+        @keyframes float-a {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50%      { transform: translateY(-14px) rotate(2deg); }
+        }
+        @keyframes float-b {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50%      { transform: translateY(10px) rotate(-2deg); }
+        }
+        @keyframes float-c {
+            0%, 100% { transform: translateY(-6px) translateX(0); }
+            50%      { transform: translateY(8px) translateX(4px); }
+        }
+        @keyframes spin-slow {
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(360deg); }
+        }
+        .float-a { animation: float-a 7s ease-in-out infinite; }
+        .float-b { animation: float-b 9s ease-in-out infinite; }
+        .float-c { animation: float-c 11s ease-in-out infinite; }
+        .spin    { animation: spin-slow 60s linear infinite; transform-origin: center; }
+        .spin-rev{ animation: spin-slow 90s linear infinite reverse; transform-origin: center; }
+
+        /* per-section geo placements — alternating R, L, R, L… down the page.
+           Hero-right is sized + positioned to halo the headshot. */
+        .geo-hero-r   { bottom: -75px; right: -75px; width: 300px; height: 300px; opacity: 0.85; }
+        .geo-write-l  { top: -10px;  left: -240px;  width: 180px; height: 180px; }
+        .geo-exp-r    { top: 80px;   right: -240px; width: 160px; height: 1500px; }
+        .geo-pub-l    { top: 0;      left: -240px;  width: 170px; height: 170px; }
+        .geo-edu-r    { top: -20px;  right: -240px; width: 160px; height: 160px; }
+        .geo-stack-l  { top: 20px;   left: -240px;  width: 180px; height: 180px; }
+        .geo-ref-r    { top: 60px;   right: -240px; width: 170px; height: calc(100% - 100px); }
+
+        @media (max-width: 1200px) {
+            .geo { display: none; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .float-a, .float-b, .float-c, .spin, .spin-rev { animation: none; }
+        }
+
         .page {
             max-width: 780px;
             margin: 0 auto;
@@ -517,6 +573,14 @@
 
         <!-- ── Hero ── -->
         <div class="hero">
+            <!-- geo: a single thin halo + one orbiting dot -->
+            <svg class="geo geo-hero-r" viewBox="0 0 300 300" aria-hidden="true">
+                <circle cx="150" cy="150" r="120" fill="none" stroke="#B05030" stroke-width="1"/>
+                <g class="spin" style="transform-origin: 150px 150px;">
+                    <circle cx="150" cy="30" r="4" fill="#B8860B"/>
+                </g>
+            </svg>
+
             <div class="hero-text">
                 <h1 class="name">Nima<br><em>Sadri</em></h1>
                 <p class="role">Co-Founder &amp; Chief of Agents &middot; <a href="https://agents2agents.ai/" target="_blank" rel="noopener" style="color: inherit; text-decoration: none; border-bottom: 1px solid var(--text-light); transition: border-color 0.3s;">Agents2Agents</a></p>
@@ -536,6 +600,14 @@
 
         <!-- ══ Writings ══ -->
         <div class="section section--writing">
+            <!-- geo: triangle outline + line cluster -->
+            <svg class="geo geo-write-l" viewBox="0 0 180 180" aria-hidden="true">
+                <polygon points="90,20 158,150 22,150" fill="none" stroke="#4A7C7E" stroke-width="1.2"/>
+                <line x1="22"  y1="22" x2="70" y2="22" stroke="#7E5F8E" stroke-width="1.2"/>
+                <line x1="22"  y1="34" x2="56" y2="34" stroke="#7E5F8E" stroke-width="1.2"/>
+                <line x1="22"  y1="46" x2="42" y2="46" stroke="#7E5F8E" stroke-width="1.2"/>
+                <circle cx="160" cy="40" r="4" fill="#B8860B"/>
+            </svg>
             <div class="section-head">
                 <div class="section-accent"></div>
                 <h2 class="section-label">Writing</h2>
@@ -553,6 +625,29 @@
 
         <!-- ══ Experience ══ -->
         <div class="section section--experience">
+            <!-- geo: vertical dotted spine + shapes distributed down the section -->
+            <svg class="geo geo-exp-r" viewBox="0 0 150 1500" preserveAspectRatio="xMidYMin meet" aria-hidden="true">
+                <line x1="75" y1="0" x2="75" y2="1500" stroke="#B05030" stroke-width="1.2" stroke-dasharray="2 8"/>
+                <!-- top cluster -->
+                <rect x="40" y="40"  width="22" height="22" fill="none" stroke="#B05030" stroke-width="1.2"/>
+                <rect x="90" y="120" width="32" height="32" fill="#B05030" opacity="0.4"/>
+                <circle cx="75" cy="220" r="7" fill="#4A7C7E"/>
+                <polygon points="60,290 90,290 75,260" fill="none" stroke="#3D6B99" stroke-width="1.2"/>
+                <!-- middle distribution -->
+                <circle cx="75" cy="400" r="4" fill="#B05030"/>
+                <rect x="55" y="500" width="40" height="6" fill="#B8860B" opacity="0.7"/>
+                <circle cx="75" cy="600" r="14" fill="none" stroke="#7E5F8E" stroke-width="1.2"/>
+                <line x1="55" y1="700" x2="95" y2="700" stroke="#3D6B99" stroke-width="1.2"/>
+                <polygon points="60,800 90,800 75,772" fill="#5A7F60" opacity="0.4"/>
+                <circle cx="75" cy="900" r="3" fill="#B05030"/>
+                <rect x="40" y="990" width="22" height="22" fill="#4A7C7E" opacity="0.4"/>
+                <circle cx="75" cy="1080" r="6" fill="none" stroke="#B05030" stroke-width="1.2"/>
+                <!-- lower distribution -->
+                <line x1="55" y1="1180" x2="95" y2="1180" stroke="#B8860B" stroke-width="1.2"/>
+                <circle cx="75" cy="1270" r="10" fill="none" stroke="#4A7C7E" stroke-width="1"/>
+                <rect x="90" y="1360" width="22" height="22" fill="none" stroke="#7E5F8E" stroke-width="1.2"/>
+                <circle cx="75" cy="1450" r="4" fill="#B8860B"/>
+            </svg>
             <div class="section-head">
                 <div class="section-accent"></div>
                 <h2 class="section-label">Experience</h2>
@@ -640,6 +735,14 @@
 
         <!-- ══ Publications ══ -->
         <div class="section section--publications">
+            <!-- geo: plus + circle outline + dot -->
+            <svg class="geo geo-pub-l" viewBox="0 0 170 170" aria-hidden="true">
+                <circle cx="85" cy="85" r="65" fill="none" stroke="#3D6B99" stroke-width="1.2"/>
+                <line x1="85" y1="58" x2="85" y2="112" stroke="#3D6B99" stroke-width="1.5"/>
+                <line x1="58" y1="85" x2="112" y2="85" stroke="#3D6B99" stroke-width="1.5"/>
+                <circle cx="20" cy="20" r="4" fill="#B05030"/>
+                <circle cx="155" cy="150" r="6" fill="none" stroke="#B05030" stroke-width="1.2"/>
+            </svg>
             <div class="section-head">
                 <div class="section-accent"></div>
                 <h2 class="section-label">Publications</h2>
@@ -676,6 +779,25 @@
 
         <!-- ══ Tech Stack ══ -->
         <div class="section section--stack">
+            <!-- geo: rotated square stack + small dot grid -->
+            <svg class="geo geo-stack-l" viewBox="0 0 180 180" aria-hidden="true">
+                <g transform="translate(90 90)">
+                    <rect x="-50" y="-50" width="100" height="100" fill="none" stroke="#7E5F8E" stroke-width="1.2"/>
+                    <g transform="rotate(15)">
+                        <rect x="-50" y="-50" width="100" height="100" fill="none" stroke="#7E5F8E" stroke-width="1.2"/>
+                    </g>
+                    <g transform="rotate(30)">
+                        <rect x="-50" y="-50" width="100" height="100" fill="none" stroke="#7E5F8E" stroke-width="1.2" opacity="0.5"/>
+                    </g>
+                </g>
+                <g fill="#7E5F8E">
+                    <circle cx="14" cy="14" r="2"/>
+                    <circle cx="28" cy="14" r="2"/>
+                    <circle cx="42" cy="14" r="2"/>
+                    <circle cx="14" cy="28" r="2"/>
+                    <circle cx="14" cy="42" r="2"/>
+                </g>
+            </svg>
             <div class="section-head">
                 <div class="section-accent"></div>
                 <h2 class="section-label">Stack</h2>
@@ -706,6 +828,30 @@
 
         <!-- ══ References ══ -->
         <div class="section section--references">
+            <!-- geo: zigzag spine + shapes distributed down the long section -->
+            <svg class="geo geo-ref-r" viewBox="0 0 170 1800" preserveAspectRatio="xMidYMin meet" aria-hidden="true">
+                <!-- continuous zigzag down the full length -->
+                <path d="M30,10 L70,50 L30,90 L70,130 L30,170 L70,210 L30,250 L70,290 L30,330 L70,370 L30,410 L70,450 L30,490 L70,530 L30,570 L70,610 L30,650 L70,690 L30,730 L70,770 L30,810 L70,850 L30,890 L70,930 L30,970 L70,1010 L30,1050 L70,1090 L30,1130 L70,1170 L30,1210 L70,1250 L30,1290 L70,1330 L30,1370 L70,1410 L30,1450 L70,1490 L30,1530 L70,1570 L30,1610 L70,1650 L30,1690 L70,1730 L30,1770"
+                      fill="none" stroke="#4A7C7E" stroke-width="1.2" opacity="0.6"/>
+                <!-- distributed accents along the right side -->
+                <circle cx="120" cy="60"   r="32" fill="none" stroke="#4A7C7E" stroke-width="1.2"/>
+                <circle cx="120" cy="60"   r="10" fill="#4A7C7E" opacity="0.5"/>
+                <polygon points="110,210 140,210 125,186" fill="none" stroke="#B05030" stroke-width="1.2"/>
+                <line x1="100" y1="320" x2="150" y2="320" stroke="#B8860B" stroke-width="1.5"/>
+                <circle cx="125" cy="430" r="6" fill="#B8860B"/>
+                <rect x="108" y="540" width="34" height="34" fill="none" stroke="#B05030" stroke-width="1.2"/>
+                <circle cx="125" cy="660" r="20" fill="none" stroke="#7E5F8E" stroke-width="1"/>
+                <circle cx="125" cy="660" r="5" fill="#7E5F8E" opacity="0.5"/>
+                <polygon points="110,790 140,790 125,766" fill="#5A7F60" opacity="0.45"/>
+                <line x1="100" y1="900" x2="150" y2="900" stroke="#3D6B99" stroke-width="1.2"/>
+                <circle cx="125" cy="1010" r="14" fill="none" stroke="#4A7C7E" stroke-width="1.2"/>
+                <rect x="108" y="1120" width="22" height="22" fill="#B05030" opacity="0.4"/>
+                <circle cx="125" cy="1240" r="4" fill="#B8860B"/>
+                <polygon points="110,1360 140,1360 125,1336" fill="none" stroke="#7E5F8E" stroke-width="1.2"/>
+                <circle cx="125" cy="1480" r="22" fill="none" stroke="#B05030" stroke-width="1"/>
+                <line x1="100" y1="1600" x2="150" y2="1600" stroke="#B8860B" stroke-width="1.2"/>
+                <circle cx="125" cy="1720" r="8" fill="none" stroke="#4A7C7E" stroke-width="1.2"/>
+            </svg>
             <div class="section-head">
                 <div class="section-accent"></div>
                 <h2 class="section-label">References &amp; Recommendations</h2>
