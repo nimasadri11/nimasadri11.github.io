@@ -372,6 +372,16 @@ modes = {
   <p>Personality selection is a thoughtful feature for teams where different developers want different interaction styles. The anti-slop directive is the more interesting design choice. LLMs have well-known aesthetic and behavioral biases, and Codex addresses them in the prompt instead of hoping post-training solves it. Claude Code's minimalism rules solve a different problem: the model's tendency to over-engineer. Named collaboration modes vs. implicit behavior shaping is a real design fork. Modes are more discoverable. Implicit shaping is more flexible. Neither is clearly better.</p>
 </Verdict>
 
+<UserTip title="For users — controlling thinking depth">
+  <p>**Claude Code:** type the word `ultrathink` anywhere in your prompt — the source code matches it with `/\bultrathink\b/i` and bumps the thinking budget to max for that turn. The keyword highlights in rainbow as visual confirmation. For session-wide control, `/effort low|medium|high|max` sets the level until you change it. The model picker says: "We recommend medium effort for most tasks. Use `ultrathink` to trigger high effort when needed."</p>
+  <p>**Codex:** set `model_reasoning_effort` in `~/.codex/config.toml` (or per profile):</p>
+  <pre><code>{`[profiles.deep]
+model_reasoning_effort = "high"
+plan_mode_reasoning_effort = "high"`}</code></pre>
+  <p>Activate the profile with `codex --profile deep`. Or set `profile = "deep"` at the top of `config.toml` to make it the default.</p>
+  <p>**When to crank it up:** unfamiliar codebases, gnarly bugs, architectural decisions, performance optimization. **When NOT to:** simple edits, lookups, routine refactors. Higher effort means more tokens and more wall time. Match it to the problem.</p>
+</UserTip>
+
 <UserTip title="For users — entering plan mode">
   <p>**Claude Code:** three ways in.</p>
   <ul>

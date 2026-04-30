@@ -57,6 +57,15 @@ result = execute(tool_call)`}
   <p>**When you see a prompt you don't understand**, deny it and ask the agent: "explain what that command would do and why you need it." This works in both tools and is faster than reverse-engineering the command yourself.</p>
   <p>**Audit auto-approvals.** In auto/`bypassPermissions` mode, Claude Code keeps showing each tool call in the transcript with a badge so you can see what got auto-approved. Scroll back periodically. If something surprising slipped through, that's a deny rule you should add.</p>
   <p>**MCP permission patterns.** MCP tools use the format `mcp__<server>__<tool>`. So `"allow": ["mcp__github__*"]` whitelists every GitHub MCP tool, `"deny": ["mcp__shell__*"]` blocks an entire MCP server, `"ask": ["mcp__db__delete_*"]` always prompts for destructive DB operations.</p>
+  <p>**Codex granular approval (advanced).** Beyond the four named policies, Codex accepts a granular table where you toggle prompts per category. In `~/.codex/config.toml`:</p>
+  <pre><code>{`[approval_policy.granular]
+mcp_elicitations  = true   # MCP elicitation prompts
+rules             = true   # execpolicy "prompt" rules
+sandbox_approval  = true   # shell command escalations
+request_permissions = false  # fail closed on tool-driven prompts
+skill_approval    = false  # fail closed on skill scripts`}</code></pre>
+  <p>Useful pattern: keep normal command prompts interactive (`sandbox_approval = true`) but auto-reject anything the model itself tries to elicit (`request_permissions = false`). The first three keys are required.</p>
+  <p>**Don't do this without a VM.** Codex's `--dangerously-bypass-approvals-and-sandbox` flag turns off both layers entirely. Combined with `--full-auto` it's fully autonomous and fully unsandboxed. Only use it inside a dedicated container or VM. On your dev machine, prefer `--ask-for-approval never` with `--sandbox workspace-write` — autonomous but still contained.</p>
 </UserTip>
 
 ### Decision 10: LLM-as-Judge
@@ -116,6 +125,7 @@ Codex captures everything in one atomic commit, including files the agent never 
     <li>`git stash` works too if you just want to revert local changes since the last commit.</li>
   </ul>
   <p>**If the agent proposes something destructive** (rm -rf, git push --force, dropping a database), pause and ask it to use a safer alternative. "Use `git stash` instead of `git checkout .`" or "delete specific files instead of `rm -rf`." Both tools warn before destructive commands but don't block them.</p>
+  <p>**Always run in a git-tracked directory.** Both tools assume git for snapshots. Codex creates detached commits per turn — without git there's no `reflog` to roll back to. Claude Code has its own `/rewind` snapshots, but if the agent runs `rm -rf` on something untracked, those snapshots only cover files the agent edited. `git init` before letting the agent loose is one of those one-time investments that pays off the first time it goes wrong.</p>
 </UserTip>
 
 ### Bash Command Safety

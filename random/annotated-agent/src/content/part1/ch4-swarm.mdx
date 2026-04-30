@@ -95,6 +95,15 @@ send_message(to="implementer", "wait for research")
   <pre><code>{`[agent]
 max_threads = 16   # default is much lower
 max_depth = 3      # how deep the spawn tree can go`}</code></pre>
+  <p>**Define custom subagents (Claude Code).** Beyond the bundled `general-purpose` agent, drop a markdown file at `~/.claude/agents/<name>.md` (user) or `.claude/agents/<name>.md` (project) and Claude Code loads it as a custom subagent type. Frontmatter declares the system prompt, allowed tools, model, and effort. Common patterns: `security-reviewer.md` for "find vulnerabilities and stop", `migration-runner.md` for "execute the migration plan in this repo", `api-design-critic.md` for "review only the API surface, not implementation." Once defined, the model can spawn it via the Agent tool by name.</p>
+  <p>**Subagents vs worktrees — different time horizons.** Subagents run in a separate context window for minutes — research, search, analysis that returns a summary. Worktrees create a separate git checkout for tens of minutes to hours — speculative refactors, parallel experiments, anything where a real branch with real file changes needs to live for a while. Don't reach for a worktree when a subagent will do; don't expect a subagent's edits to survive past its task.</p>
+  <p>**The TDD pattern that works in both tools.** The most-cited workflow in 2026 community guides:</p>
+  <ol>
+    <li>You (or the agent) write the tests first.</li>
+    <li>Run them and confirm they ALL fail. Show the agent the output.</li>
+    <li>Spawn a subagent: "Implement until all tests pass. Do NOT modify the tests themselves. Run the test suite after each change."</li>
+  </ol>
+  <p>Forces the agent to define "done" by an external signal (passing tests) instead of by self-judgment. The "do NOT modify the tests" line is critical — without it, the model occasionally edits tests to make them pass instead of fixing the implementation.</p>
 </UserTip>
 
 ### The Coordinator Pattern
