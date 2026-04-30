@@ -1,0 +1,12 @@
+---
+interface Props {
+  title?: string;
+}
+const { title = "For users" } = Astro.props;
+---
+<aside class="user-tip">
+  <div class="user-tip-label">{title}</div>
+  <div class="user-tip-body">
+    <slot />
+  </div>
+</aside>

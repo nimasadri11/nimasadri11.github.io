@@ -14,6 +14,7 @@
   --accent-claude: #B05030;
   --accent-verdict: #5A7F60;
   --accent-deepdive: #78716C;
+  --accent-gold: #B8860B;
   --reading-width: 820px;
   --code-width: min(1100px, 92vw);
   --font-body: 'Crimson Text', Georgia, 'Times New Roman', serif;
@@ -315,6 +316,54 @@ article {
 }
 
 .verdict p:last-child { margin-bottom: 0; }
+
+/* === User Tip (practical advice callout) === */
+.user-tip {
+  max-width: var(--reading-width);
+  margin: 2rem auto;
+  padding: 1.4rem 1.6rem 1.2rem;
+  background: rgba(184, 134, 11, 0.06);
+  border-left: 3px solid var(--accent-gold, #B8860B);
+  border-radius: 0 6px 6px 0;
+  position: relative;
+}
+
+.user-tip-label {
+  font-family: var(--font-ui);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--accent-gold, #B8860B);
+  margin-bottom: 0.7rem;
+}
+
+.user-tip-body p {
+  margin-bottom: 0.7rem;
+  font-size: 0.95rem;
+}
+.user-tip-body p:last-child { margin-bottom: 0; }
+
+.user-tip-body code {
+  font-family: var(--font-code);
+  font-size: 0.85em;
+  background: rgba(184, 134, 11, 0.12);
+  color: #8a6608;
+  padding: 0.12em 0.38em;
+  border-radius: 3px;
+}
+
+.user-tip-body pre {
+  margin: 0.8rem 0;
+}
+
+.user-tip-body ul, .user-tip-body ol {
+  margin: 0.5rem 0 0.8rem 1.2rem;
+}
+.user-tip-body li {
+  margin-bottom: 0.3rem;
+  font-size: 0.95rem;
+}
 
 /* === Deep Dive === */
 .deep-dive {

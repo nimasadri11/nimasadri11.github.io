@@ -1,6 +1,7 @@
 import CodeComparison from '../../components/CodeComparison.tsx';
 import Verdict from '../../components/Verdict.astro';
 import CodeBlock from '../../components/CodeBlock.tsx';
+import UserTip from '../../components/UserTip.astro';
 
 ## Chapter 1: The Prompt & Extensions
 
@@ -37,6 +38,11 @@ prompt = [
 <Verdict>
   <p>Codex's approach is more powerful when it works. The client sends a small delta each turn instead of re-transmitting the full conversation. But it requires sticky routing, a live WebSocket, and a warm server. If the connection drops or the server recycles, you fall back to full re-processing. Claude Code re-sends everything but relies on prefix matching to avoid re-computation. Any API endpoint can serve any turn with no routing affinity. For a tool where sessions last hours and network conditions vary, client-side caching is the safer bet. If you're building an agent, start with client-side cache boundaries. Add server-side caching when bandwidth becomes the bottleneck.</p>
 </Verdict>
+
+<UserTip>
+  <p>**Claude Code:** run `/cost` to see cached vs uncached tokens per turn. If cached tokens are low, something is invalidating your cache (likely a changed tool or new MCP server connection mid-session).</p>
+  <p>**Codex:** caching is server-side and invisible. There's no command to inspect cache state.</p>
+</UserTip>
 
 ### Decision 2: Tool Taxonomy
 
@@ -170,8 +176,34 @@ Codex caches by exact command. Each approved action is serialized and stored as 
 Claude Code caches by pattern rules. When a user approves an action, it becomes a permission rule that can use globs. A single rule like "allow all git commands" covers `git status`, `git diff`, and `git commit`. Rules persist across sessions in a settings file, or scope to the current session depending on the user's choice.
 
 <Verdict>
-  <p>Rules are more flexible. If you're building an agent, start with exact-match caching and add patterns when users complain about repetitive prompts. Exact-match is safer for audit trails and security-critical environments. Patterns are better for daily interactive use. If you use Claude Code, check your permission rules periodically (`~/.claude/settings.json`). A glob that matches more than intended is an invisible hole in your security model. If you use Codex, know that every approval is a one-time pass for that exact command.</p>
+  <p>Rules are more flexible. If you're building an agent, start with exact-match caching and add patterns when users complain about repetitive prompts. Exact-match is safer for audit trails and security-critical environments. Patterns are better for daily interactive use. A glob that matches more than intended is an invisible hole in your security model.</p>
 </Verdict>
+
+<UserTip>
+  <p>**Claude Code:** edit `~/.claude/settings.json` to manage permission rules. The format is `ToolName(pattern)` with `*` for one segment and `**` for multiple. Example:</p>
+  <pre><code>{`{
+  "permissions": {
+    "allow": [
+      "Bash(git *)",
+      "Bash(npm test)",
+      "Bash(npm run *)",
+      "Read(*.ts)",
+      "Write(src/**)"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(git push --force *)",
+      "Write(.env)"
+    ],
+    "ask": [
+      "Bash(curl *)",
+      "Edit(package.json)"
+    ]
+  }
+}`}</code></pre>
+  <p>To revoke an overly broad rule, edit the file and remove the entry. Rules persist across sessions.</p>
+  <p>**Codex:** approvals default to `ApprovedForSession` — kept in an in-memory set keyed on the serialized command, gone when the session ends. Two ways to make an approval persist: pick the "always allow" option to apply a proposed `execpolicy` amendment (writes a rule into your exec policy), or persist a per-host network rule via `NetworkPolicyAmendment`. MCP tool approvals can also be persisted to `config.toml` under `apps.<connector>.tools.<name>.approval_mode = "approve"`. The default behavior is session-scoped though; persistence is opt-in via the amendment dialog.</p>
+</UserTip>
 
 ### Decision 4: Hooks
 
@@ -203,8 +235,30 @@ async for result in hook.execute(payload):
 />
 
 <Verdict>
-  <p>Shell-command hooks are the right starting point. They work with any language, can't crash the host process, and the exit-code protocol is dead simple. But input mutation and context injection (the async generator approach) unlock things gatekeeping can't: a pre-tool-use hook that rewrites a file path or adds "also check the tests" to the model's context is more useful than one that can only say yes or no. If you use Claude Code, hooks are how you enforce team conventions automatically (e.g., blocking commits without tests, injecting style guides before code generation). If you use Codex, hooks can gate dangerous operations but can't modify what the model sees. Build the gatekeeper first, add the transformer when users ask.</p>
+  <p>Shell-command hooks are the right starting point. They work with any language, can't crash the host process, and the exit-code protocol is dead simple. But input mutation and context injection (the async generator approach) unlock things gatekeeping can't: a pre-tool-use hook that rewrites a file path or adds "also check the tests" to the model's context is more useful than one that can only say yes or no. Build the gatekeeper first, add the transformer when users ask.</p>
 </Verdict>
+
+<UserTip>
+  <p>**Claude Code:** add hooks under the `hooks` key in `~/.claude/settings.json`. Block `git push` if tests haven't passed:</p>
+  <pre><code>{`{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/check-push.py",
+            "if": "Bash(git push*)"
+          }
+        ]
+      }
+    ]
+  }
+}`}</code></pre>
+  <p>The hook script receives the tool input as JSON on stdin. Return exit code 0 to allow, exit code 2 to block (with the reason on stderr). Claude Code supports 4 hook types (`command`, `prompt`, `agent`, `http`) and 26 events including `PreToolUse`, `PostToolUse`, `UserPromptSubmit`, `SessionStart`, `Stop`, `SubagentStart`, `TaskCreated`, `FileChanged`.</p>
+  <p>**Codex:** same JSON shape but only the `command` hook type is supported. Hooks gate (allow/block via exit code or `decision: "block"` JSON), but cannot modify tool inputs or inject context.</p>
+</UserTip>
 
 ### Decision 5: Skills
 
@@ -240,8 +294,31 @@ else:
 />
 
 <Verdict>
-  <p>Both systems use `SKILL.md` files on disk for skill definitions (both follow the <a href="https://agentskills.io">Agent Skills</a> open standard), so skills live in version control, teams can PR them, and new hires find them by browsing a directory. Codex skills can bundle `scripts/` directories with executable code; Claude Code skills are markdown-only (execution happens through the model calling tools). The difference in invocation: Codex uses the `$` sigil (`$deploy`), Claude Code uses `/` (`/deploy`). Both support auto-invocation when the model detects a task matching a skill's description. If you use either tool, check what skills are available. Claude Code: run `/help` to see built-in skills. Codex: look in `~/.codex/skills/`.</p>
+  <p>Both systems use `SKILL.md` files on disk for skill definitions (both follow the <a href="https://agentskills.io">Agent Skills</a> open standard), so skills live in version control, teams can PR them, and new hires find them by browsing a directory. Codex skills can bundle `scripts/` directories with executable code; Claude Code skills are markdown-only (execution happens through the model calling tools). The difference in invocation: Codex uses the `$` sigil (`$deploy`), Claude Code uses `/` (`/deploy`). Both support auto-invocation when the model detects a task matching a skill's description.</p>
 </Verdict>
+
+<UserTip title="For users — creating a skill">
+  <p>**Claude Code:** make a directory at `.claude/skills/my-deploy/` (project-scoped) or `~/.claude/skills/my-deploy/` (personal). Add a `SKILL.md`:</p>
+  <pre><code>{`---
+description: Deploy to staging environment
+allowed-tools:
+  - Bash(git *)
+  - Bash(npm run deploy:*)
+---
+
+# Deploy to Staging
+
+## Steps
+1. Run tests: \`npm test\`
+2. Build: \`npm run build\`
+3. Deploy: \`npm run deploy:staging\`
+
+## Rules
+- Never deploy to production from this skill
+- If tests fail, stop and report`}</code></pre>
+  <p>Invoke it: type `/my-deploy`. Frontmatter fields you'll likely use: `description` (one-line summary), `allowed-tools` (restrict tools the skill can call), `context: fork` (run as sub-agent), `model: haiku|sonnet|opus`, `paths` (glob to gate visibility), `argument-hint` (example args).</p>
+  <p>**Don't write skills by hand** — let the agent do it. Claude Code: run `/skillify` (built-in) or install the more powerful plugin with `/plugin install skill-creator@claude-plugins-official`, then `/skill-creator <name>`. Codex: run `$skill-creator` (a system skill that ships with Codex). All of them walk you through naming, frontmatter, and structure, and write the file for you. To list installed skills: `ls ~/.claude/skills/` or `ls ~/.codex/skills/`.</p>
+</UserTip>
 
 ### System Prompt Design
 
@@ -295,6 +372,20 @@ modes = {
   <p>Personality selection is a thoughtful feature for teams where different developers want different interaction styles. The anti-slop directive is the more interesting design choice. LLMs have well-known aesthetic and behavioral biases, and Codex addresses them in the prompt instead of hoping post-training solves it. Claude Code's minimalism rules solve a different problem: the model's tendency to over-engineer. Named collaboration modes vs. implicit behavior shaping is a real design fork. Modes are more discoverable. Implicit shaping is more flexible. Neither is clearly better.</p>
 </Verdict>
 
+<UserTip title="For users — entering plan mode">
+  <p>**Claude Code:** three ways in.</p>
+  <ul>
+    <li>Press `Shift+Tab` to toggle plan mode on/off.</li>
+    <li>Type `/plan` in the input.</li>
+    <li>Let the agent decide: it can call `EnterPlanMode` itself when it judges a task needs planning. You'll see a permission dialog before it activates.</li>
+  </ul>
+  <p>In plan mode, write tools (Edit, Write, Bash) are disabled. The agent reads, searches, and proposes. Approve via `ExitPlanMode` to start implementing.</p>
+  <p>**Codex:** press `Shift+Tab` to cycle modes (Default → Plan → Execute → Pair → Default). Or type `/plan` directly. Set the default in `~/.codex/config.toml`:</p>
+  <pre><code>{`[agent]
+collaboration_mode = "plan"  # or "execute", "pair", "default"`}</code></pre>
+  <p>The current mode shows in the TUI footer.</p>
+</UserTip>
+
 ### What the Model Sees
 
 The two systems construct prompts at different levels of abstraction.
@@ -314,3 +405,20 @@ Plugins are distributed through marketplaces. A marketplace is a JSON manifest l
 Codex has nothing equivalent. Its extension model stops at skills and MCP servers. This is a deliberate scope decision: skills cover most customization needs without the complexity of a package manager, version resolution, and supply chain security. The tradeoff is that Codex users who want to share complex extensions (hooks + skills + MCP configs as a bundle) have no standard way to do it.
 
 The plugin system also introduces custom agents: markdown files that define a system prompt, tool whitelist, and MCP servers. These are a superset of skills. A skill is "use this prompt when invoked." An agent is "become this persona with these capabilities." Organizations use them for specialized roles: security reviewer, database migration assistant, API design critic.
+
+<UserTip title="For users — adding MCP servers and switching personality">
+  <p>**Add an MCP server (Claude Code).** From the CLI:</p>
+  <pre><code>{`claude mcp add <name> <command-and-args>          # stdio
+claude mcp add <name> --transport http <url>      # HTTP
+claude mcp add-json <name> '<full-json-config>'   # advanced
+claude mcp add-from-claude-desktop                # import from Claude Desktop`}</code></pre>
+  <p>The `--scope` flag controls where it's saved: `local` (this directory only), `user` (everywhere), `project` (committed to the repo). MCP tool permissions follow the pattern `mcp__<server>__<tool>` — so `"allow": ["mcp__github__*"]` whitelists every GitHub MCP tool.</p>
+  <p>**Add an MCP server (Codex).** Edit `~/.codex/config.toml`:</p>
+  <pre><code>{`[mcp_servers.github]
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-github"]
+env = { "GITHUB_TOKEN" = "$GITHUB_TOKEN" }`}</code></pre>
+  <p>**Switch Codex personality.** Codex ships three voices most users never discover. In `~/.codex/config.toml`:</p>
+  <pre><code>{`personality = "friendly"   # or "pragmatic" or "none"`}</code></pre>
+  <p>`friendly` uses "we" and "let's" and opens with warmer preambles. `pragmatic` acknowledges good work but avoids cheerleading. `none` strips personality entirely — terse, minimal output. Claude Code has one fixed voice, no setting to change it.</p>
+</UserTip>

@@ -1,5 +1,6 @@
 import CodeComparison from '../../components/CodeComparison.tsx';
 import Verdict from '../../components/Verdict.astro';
+import UserTip from '../../components/UserTip.astro';
 
 
 
@@ -42,8 +43,25 @@ if user_said_remember:
 **When memories are fetched and used.** Claude Code loads `MEMORY.md` into the system prompt at conversation start. It then runs a side-query (a cheap, separate API call) to pick up to five relevant memories from the topic files based on the current conversation context. These get injected as additional system prompt content. During the conversation, the agent can read more memory files if it decides they're relevant, or write new ones when the user says "remember this." Codex loads `memory_summary.md` (truncated to 5K tokens) into the developer message on every turn. At session start, a "quick memory pass" runs 4-7 search steps against the SQLite database to find relevant memories. Memories that get used in a session have their `usage_count` incremented, which influences future retention decisions.
 
 <Verdict>
-  <p>Claude Code's file-based approach is the right starting point. Users can read, edit, and debug their agent's memory. The agent manages its own memory through normal file operations. Codex bets on automation: a background pipeline that extracts, scores, and consolidates memories without user intervention. Usage tracking and citation blocks give Codex's system better observability into which memories matter. If you use Claude Code, check `~/.claude/projects/` to see what your agent remembers. If you use Codex, the memories live in the SQLite database (not yet shipped to users). Start with files. Add usage tracking when you have enough sessions to measure retention.</p>
+  <p>Claude Code's file-based approach is the right starting point. Users can read, edit, and debug their agent's memory. The agent manages its own memory through normal file operations. Codex bets on automation: a background pipeline that extracts, scores, and consolidates memories without user intervention. Usage tracking and citation blocks give Codex's system better observability into which memories matter. Start with files. Add usage tracking when you have enough sessions to measure retention.</p>
 </Verdict>
+
+<UserTip title="For users — managing your agent's memory">
+  <p>**See what Claude Code remembers about you.** `ls ~/.claude/projects/` lists per-project memory directories (named by path hash). Inside each: `memory/MEMORY.md` (the index) and topic files like `feedback_testing.md`, `user_role.md`. Open `MEMORY.md` to read what your agent thinks it knows. Codex memories live in a SQLite database and aren't yet user-visible.</p>
+  <p>**Add a memory the easy way.** Tell the agent: "remember that I prefer pytest over unittest", or "remember we ship via the staging branch, not main." It writes the file and updates the index for you.</p>
+  <p>**Add a memory by hand.** Create `~/.claude/projects/<project>/memory/testing-preference.md` with frontmatter:</p>
+  <pre><code>{`---
+name: testing-preference
+description: User prefers pytest over unittest
+type: feedback
+---
+Use pytest for all test files. User corrected this on 2026-04-10.`}</code></pre>
+  <p>Then add a line to `MEMORY.md`: `- [Testing preference](testing-preference.md) — use pytest not unittest`.</p>
+  <p>**Memory types** (the `type` field): `user` (your role, preferences), `feedback` (corrections you've given), `project` (sprint goals, who owns what), `reference` (pointers like "bugs in Linear project INGEST").</p>
+  <p>**When memory goes stale.** If the agent acts on outdated info, open the relevant file and edit or delete it. If the agent keeps repeating a mistake you corrected, ask "do you remember what I said about X?" — if it doesn't, the memory wasn't saved. Tell it to save it.</p>
+  <p>**Project vs global scope.** `~/.claude/CLAUDE.md` and `~/.claude/projects/<global>/memory/` apply across every project. `.claude/CLAUDE.md` and per-project memory only apply when you're in that repo. Put preferences (testing style, communication tone) in global. Put project-specific facts (deploy commands, sprint context) in project. The agent loads both and the project tier wins on conflict.</p>
+  <p>**The `/memory` command (Claude Code).** Type `/memory` to see the loaded memory and edit it inline. Most users never discover this. It's the fastest way to audit what the agent knows about you and trim anything that's wrong.</p>
+</UserTip>
 
 ### Decision 17: Memory Consolidation
 

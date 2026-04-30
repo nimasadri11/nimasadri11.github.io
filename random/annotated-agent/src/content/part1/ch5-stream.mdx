@@ -1,6 +1,7 @@
 import CodeComparison from '../../components/CodeComparison.tsx';
 import Verdict from '../../components/Verdict.astro';
 import DeepDive from '../../components/DeepDive.astro';
+import UserTip from '../../components/UserTip.astro';
 
 
 ## Chapter 5: The Stream and Tool Executor
@@ -82,6 +83,19 @@ The prompt guidance for both versions is specific about state transitions. Mark 
 **The verification nudge.** Both Codex and Claude Code include the same behavioral check: if the agent completes 3+ steps without any step mentioning "verification" or "verify," the system prompts the agent to spawn a verification subagent before reporting completion to the user. This is how the plan tool connects to the broader agent loop: it doesn't just track progress, it gates the agent's definition of "done."
 
 <Verdict>
-  <p>Plan tracking is one of those features that sounds like project management overhead but changes how the agent works. Without a plan, the agent streams through tasks and the user sees tool calls flying by. With a plan, the user sees which phase the agent is in and can interrupt if the approach is wrong. The verification nudge is the more interesting design: by connecting plan completion to a behavioral rule ("3 items completed without verification → spawn verifier"), both teams turned a UI feature into an architectural constraint. If you use either tool for complex tasks, watch for the plan. If the agent skips planning on a multi-step task, ask it to make one. The plan forces decomposition, and decomposition catches errors earlier.</p>
+  <p>Plan tracking is one of those features that sounds like project management overhead but changes how the agent works. Without a plan, the agent streams through tasks and the user sees tool calls flying by. With a plan, the user sees which phase the agent is in and can interrupt if the approach is wrong. The verification nudge is the more interesting design: by connecting plan completion to a behavioral rule ("3 items completed without verification → spawn verifier"), both teams turned a UI feature into an architectural constraint.</p>
 </Verdict>
+
+<UserTip title="For users — controlling what you see and forcing planning">
+  <p>**Toggle verbosity (Claude Code).** `Shift+V` switches between collapsed and expanded tool output.</p>
+  <ul>
+    <li>**Collapsed:** each tool call shows a one-line summary ("Read src/auth.ts (142 lines)"). Best for long sessions where you don't need every byte the agent saw.</li>
+    <li>**Expanded:** full tool output. Best when debugging or auditing what the agent actually read.</li>
+  </ul>
+  <p>**Force the plan.** If the agent dives into a multi-step task without planning, say: "Make a plan for this refactor before writing any code." Both systems respect this. Plans force decomposition, and decomposition catches errors before they're written.</p>
+  <p>**Watch the plan as it runs.** Claude Code: tasks appear in the left panel with status indicators — click to expand. Codex: the plan renders inline as a checklist; the active step is highlighted in cyan, completed steps are crossed out and dim.</p>
+  <p>**Why parallel sometimes "feels" faster.** Claude Code marks tools concurrent-safe or not. Reads (file read, grep, glob) overlap. Writes (edits, bash) are serialized. Codex fires everything concurrently and lets the sandbox limit blast radius. You don't control this, but knowing it explains why "read 5 files" returns instantly while "edit 5 files" does not.</p>
+  <p>**Ctrl+C etiquette.** Claude Code: one `Ctrl+C` interrupts the current turn (the model keeps any output it had streamed). Two `Ctrl+C` in a row exits. Codex: `Ctrl+C` cancels the in-flight tool but keeps the session; `Esc` cancels the whole turn. Use these when the agent is going down the wrong path — interrupting and redirecting beats waiting for it to finish a bad approach.</p>
+  <p>**Write the file, don't paste it.** When you need a long file generated, ask the agent to write it directly with the file tool ("write this to `src/auth.ts`") instead of streaming the contents into chat. Faster, cleaner diff, and the agent doesn't have to re-output it later.</p>
+</UserTip>
 

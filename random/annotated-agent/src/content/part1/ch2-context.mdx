@@ -1,5 +1,6 @@
 import CodeComparison from '../../components/CodeComparison.tsx';
 import Verdict from '../../components/Verdict.astro';
+import UserTip from '../../components/UserTip.astro';
 
 ## Chapter 2: Context Construction and Management
 
@@ -60,6 +61,14 @@ The key difference in project instructions: Codex discovers AGENTS.md files by w
 <Verdict>
   <p>Both systems support layered configuration. Codex has `~/.codex/config.toml` (user-global), `.codex/config.toml` (project), system-level config, and MDM policies. Claude Code has managed policies, user settings (`~/.claude/CLAUDE.md`), project settings, and local overrides. The main difference is CLAUDE.md files double as both configuration and instruction injection (they're concatenated into the context), while Codex separates config (TOML) from instructions (AGENTS.md). Claude Code's `@include` directive and `.claude/rules/*.md` structured rules give more flexibility in how instructions are organized.</p>
 </Verdict>
+
+<UserTip title="For users — writing CLAUDE.md / AGENTS.md">
+  <p>Keep it under ~2K tokens. Every token burns prompt space on every turn. Include things the agent can't derive from the code itself.</p>
+  <p>**Good entries:** preferred test commands (`pnpm test`, not `npm test`), deployment rules ("never deploy to prod from a feature branch"), naming conventions you can't infer from existing files, links to internal docs, dependency quirks ("we pin Node 20 because of native deps").</p>
+  <p>**Skip:** file structure, imports, function signatures — the agent reads the code. "We use TypeScript" is also useless if `tsconfig.json` is sitting there.</p>
+  <p>**Claude Code structure:** put broad principles in `.claude/CLAUDE.md`, split team rules into `.claude/rules/testing.md`, `.claude/rules/deploy.md`, `.claude/rules/style.md`. Pull in external docs with `@include ../docs/api-conventions.md`. Local overrides go in `.claude/local/CLAUDE.md` (gitignored).</p>
+  <p>**Codex structure:** nest `AGENTS.md` files. `AGENTS.md` at the repo root, `src/api/AGENTS.md` for API-specific rules, `src/web/AGENTS.md` for frontend rules. Codex walks from root to CWD and concatenates them, so context narrows as you cd deeper.</p>
+</UserTip>
 
 ### What Changes Per Turn
 
@@ -127,3 +136,25 @@ if tokens > auto_compact_limit:
 <Verdict>
   <p>Claude Code's cascade is the better architecture. Three of its five levels are free (no LLM call). Codex jumps straight to the expensive option. For a system that runs long sessions, the cheap levels handle most cases and defer the expensive summarization. The session memory approach is particularly clever: by having a subagent write notes during the session, the summary already exists when compaction is needed. The tradeoff is complexity: five compaction strategies means five sets of edge cases and failure modes. Codex's single strategy is simpler to reason about and debug. If you're building an agent, implement the cheapest level first (clearing old tool outputs) and add layers when sessions get long enough to need them.</p>
 </Verdict>
+
+<UserTip title="For users — managing context">
+  <p>**See where you stand.** Claude Code: `/cost` shows token usage per turn (cached vs uncached). Watching cached tokens drop is the first sign your cache got invalidated.</p>
+  <p>**Force compaction.** Claude Code: `/compact` runs LLM compaction on demand. Pass a hint to focus the summary: `/compact focus on the auth module only`. Codex has no manual compact — it fires automatically at the token threshold (`auto_compact_token_limit` in `~/.codex/config.toml`).</p>
+  <p>**Put context usage in your status line (Claude Code).** Add to `~/.claude/settings.json`:</p>
+  <pre><code>{`{
+  "statusLine": {
+    "type": "command",
+    "command": "~/.claude/statusline.sh"
+  }
+}`}</code></pre>
+  <p>Then create `~/.claude/statusline.sh`:</p>
+  <pre><code>{`#!/bin/bash
+input=$(cat)
+model=$(echo "$input" | jq -r '.model.display_name')
+usage=$(echo "$input" | jq -r '.context_window.used_percentage')
+printf "%s [%.0f%% context]" "$model" "$usage"`}</code></pre>
+  <p>Make it executable (`chmod +x ~/.claude/statusline.sh`). The script receives JSON on stdin with `context_window.used_percentage`, `rate_limits`, `vim.mode`, `agent.name`, and `worktree` info — pull whatever you want into your status line. You can also run `claude statusline "show context % and rate limit"` to have the agent generate one for you.</p>
+  <p>**Recover when context feels stale.** If the agent forgets a decision, it was probably compacted away — repeat the constraint in your next message. If it keeps re-reading the same files, tool results were cleared. For a genuinely new task, start a new session instead of reusing a 50-turn one.</p>
+  <p>**Inject files with `@`.** In both tools, typing `@path/to/file.ts` mid-message pulls that file into the prompt directly. Saves the agent a Read call and gets you a faster first turn. Tab-completion works on file paths.</p>
+  <p>**Pasted output.** When you paste a giant log or stack trace, both tools auto-spill it to a temp file and replace the paste with a reference. Don't re-paste the same log — tell the agent "read the pasted log" and it'll open the file.</p>
+</UserTip>

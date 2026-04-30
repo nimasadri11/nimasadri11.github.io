@@ -2,6 +2,7 @@ import CodeComparison from '../../components/CodeComparison.tsx';
 import Verdict from '../../components/Verdict.astro';
 import TopologyDiagram from '../../components/diagrams/TopologyDiagram.tsx';
 import TmuxLayoutDiagram from '../../components/diagrams/TmuxLayoutDiagram.tsx';
+import UserTip from '../../components/UserTip.astro';
 
 
 ## Chapter 4: The Swarm
@@ -68,6 +69,33 @@ send_message(to="implementer", "wait for research")
 <Verdict>
   <p>Trees are the right default. The constraint of no lateral messaging forces clean decomposition. When something goes wrong, you follow the parent-child chain. Graduate to teams when you find agents constantly relaying messages through parents to reach siblings. The fork mode is a practical pattern: a child that inherits the last 3 turns of parent context starts with useful knowledge without the noise of a full conversation.</p>
 </Verdict>
+
+<UserTip title="For users — when (and how) to go multi-agent">
+  <p>**When it's worth it:** the task touches 3+ unrelated areas, you need research + implementation + verification, or you have an obvious fan-out (test 10 things, summarize 20 PRs). Single-agent with good context handles most other things faster.</p>
+  <p>**Claude Code — let the agent decide.** For complex tasks, it spawns workers automatically. To force it: "Use a team with the in-process backend to parallelize this." Backends:</p>
+  <ul>
+    <li>**`in-process`** — invisible, cheapest, shares the API client. Default for most cases.</li>
+    <li>**`tmux`** — each worker gets its own pane with a colored border. Leader takes the left 30%, workers split the right 70%. Best when you want to watch.</li>
+    <li>**`iTerm2`** — same as tmux but uses native iTerm panes (macOS).</li>
+  </ul>
+  <p>Tasks appear in the left panel. They persist across context compaction.</p>
+  <p>**Codex — explicit ask required.** Codex will not spawn children unless you tell it to. Phrases that work: "use sub-agents to parallelize this", "delegate the search to an explorer", "fan this out across the test files." Roles:</p>
+  <ul>
+    <li>**`explorer`** — fast, read-only investigation. The system prompt says "Explorers are fast and authoritative."</li>
+    <li>**`worker`** — implementation and execution.</li>
+    <li>**fork mode** — give a child the last N turns of your context, no more. Useful for "continue what I was doing but focus only on the API layer."</li>
+  </ul>
+  <p>**Watching workers without tmux.** Claude Code's task panel shows live status for every running worker. Press `Tab` to cycle focus between the panel and the main chat. The panel survives context compaction so you don't lose track of long-running work.</p>
+  <p>**Killing a stuck teammate (Claude Code).** Two levels:</p>
+  <ul>
+    <li>`terminate(<name>)` — graceful. Sends a shutdown message; the worker can finish what it's mid-step and exit cleanly. Use this first.</li>
+    <li>`kill(<name>)` — forceful. Aborts via AbortController immediately. Use when terminate doesn't return.</li>
+  </ul>
+  <p>**Bumping Codex's parallelism.** Codex caps total agents across the tree. Default is conservative. If you're doing heavy fan-out, raise it in `~/.codex/config.toml`:</p>
+  <pre><code>{`[agent]
+max_threads = 16   # default is much lower
+max_depth = 3      # how deep the spawn tree can go`}</code></pre>
+</UserTip>
 
 ### The Coordinator Pattern
 

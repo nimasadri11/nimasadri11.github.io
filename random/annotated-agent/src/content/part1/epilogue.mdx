@@ -1,5 +1,6 @@
 import DecisionTable from '../../components/DecisionTable.tsx';
 import CodeBlock from '../../components/CodeBlock.tsx';
+import UserTip from '../../components/UserTip.astro';
 
 ## The 23 Decisions
 
@@ -57,6 +58,22 @@ import CodeBlock from '../../components/CodeBlock.tsx';
         messages.append(result)`} />
 
 Everything else in this post exists to make that loop work in production.
+
+<UserTip title="For users — power-user shortcuts">
+  <p>**Edit and rerun the last message (Claude Code).** Press `Esc` twice to pull your last message back into the input. Edit, hit enter — the agent reruns from there. Faster than retyping or scrolling up.</p>
+  <p>**History.** Up arrow cycles through previous messages. Works in both tools.</p>
+  <p>**`/clear` vs `/compact` vs new session.**</p>
+  <ul>
+    <li>`/clear` — wipes the entire conversation. Use when starting an unrelated task in the same session.</li>
+    <li>`/compact` (Claude Code) — summarizes the conversation into a shorter form. Keeps the gist, drops the noise. Use when context is full but you want to keep working on the same task.</li>
+    <li>New session — fresh slate. Memory and CLAUDE.md still load. Use for genuinely new work.</li>
+  </ul>
+  <p>**Resume a previous session.** Both tools support resume:</p>
+  <pre><code>{`claude --resume          # picker shows recent sessions
+claude --continue, -c    # resume the most recent
+codex resume             # picker for Codex sessions`}</code></pre>
+  <p>If you closed a terminal mid-task, you don't have to start over.</p>
+</UserTip>
 
 We're building on these decisions. [ata](https://agents2agents.ai/ata) takes the best ideas from both systems, combines them with innovations of our own, and ships them as one open-source agent for researchers and engineers. The goal: the most capable, smooth, and intelligent coding agent that exists.
 

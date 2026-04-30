@@ -1,5 +1,6 @@
 import CodeComparison from '../../components/CodeComparison.tsx';
 import Verdict from '../../components/Verdict.astro';
+import UserTip from '../../components/UserTip.astro';
 
 ## Chapter 7: Voice and Personality
 
@@ -35,6 +36,12 @@ def on_key_release():
   <p>Push-to-talk transcription is the pragmatic choice for a CLI tool. It adds voice as an input method without changing the interaction model. Bidirectional voice is more ambitious but harder to get right in a terminal context, where the primary output is code and diffs. Build push-to-talk first. Add voice output later if users ask for it.</p>
 </Verdict>
 
+<UserTip title="For users — using voice">
+  <p>**Claude Code:** hold Space to talk, release to submit. The transcription drops into the input field as if you typed it. Change the trigger key in `~/.claude/keybindings.json`. Supported languages auto-detect: English, Spanish, French, Japanese, German, Portuguese, Italian, Korean.</p>
+  <p>**Codex:** bidirectional voice — the agent talks back through your speakers. Works on macOS and Windows; disabled on Linux.</p>
+  <p>**When voice beats typing.** When you're explaining intent or context: "I think the bug is the token refresh — the reconnect fires before the new token comes back, but only after expiry, not on cold start." Typing collapses that to "fix the reconnect logic." Voice keeps your full thinking and the agent gets a richer prompt. Worth it for: debugging sessions, code reviews, anything exploratory. Not worth it for: a one-line command.</p>
+</UserTip>
+
 ### Decision 19: Agent Personality
 
 Codex has no personality system. The agent is a function: prompt in, tool calls out.
@@ -52,3 +59,8 @@ It's a small duck (or ghost, or mushroom) in the corner of the terminal. And use
 <Verdict>
   <p>Personality is probably not a feature most agent builders would prioritize. But the buddy system shows something interesting: the surface area between human and agent is wider than the text box. If you think about it, this is similar to how rubber duck debugging works. A visual presence with reactions shifts the user's mental model from "commanding a program" to "working with something." You don't need 18 species. Even a single animated sprite changes how people relate to the agent.</p>
 </Verdict>
+
+<UserTip title="For users — your buddy">
+  <p>**Claude Code:** type `/buddy` to see your companion. `/buddy pet` interacts with it (floating hearts, cute reactions). The buddy is generated deterministically from your account ID — species, accessories, stats, even the soul/personality. You can't change it. But you also can't lose it; reinstalling Claude Code gives you the same buddy back.</p>
+  <p>It's purely cosmetic. It doesn't affect agent behavior. But the rubber-duck effect is real — users phrase requests differently when something is watching.</p>
+</UserTip>

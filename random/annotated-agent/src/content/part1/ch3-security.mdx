@@ -1,4 +1,5 @@
 import CodeComparison from '../../components/CodeComparison.tsx';
+import UserTip from '../../components/UserTip.astro';
 import Verdict from '../../components/Verdict.astro';
 
 
@@ -37,6 +38,26 @@ result = execute(tool_call)`}
   <p>Both have real failure modes. Sandboxing leads to escalation fatigue: users start rubber-stamping "retry without sandbox?" prompts. Permissions lead to over-broad rules: users grant allow-all to stop the prompts, and now there's no barrier at all. In a third-party security comparison by Blake Crosley, Claude Code's permission system caught a timing side-channel that Codex missed. Codex's sandbox caught an SSRF vector that Claude Code's permission system approved. Neither approach catches everything.</p>
   <p>If you can only build one, I think you should build the sandbox. A user who rubber-stamps escalation prompts still had the sandbox catch the first attempt. A user who grants allow-all to stop permission prompts has no barrier left.</p>
 </Verdict>
+
+<UserTip title="For users — choosing your permission mode">
+  <p>**Claude Code permission modes (set with `--allowedTools` flag, the `/permissions` command, or `permissions.defaultMode` in settings.json):**</p>
+  <ul>
+    <li>**Default** — asks for everything except reads and searches. Safest, slowest.</li>
+    <li>**`acceptEdits`** — auto-approves file edits within the working directory. Still asks for shell commands. Good for "I trust file changes but want to review commands."</li>
+    <li>**`bypassPermissions`** (auto mode) — the classifier LLM decides. Most safe operations get auto-approved. Dangerous commands still prompt. Fastest mode for experienced users.</li>
+    <li>**`plan`** — read-only exploration; write tools disabled.</li>
+  </ul>
+  <p>**Codex sandbox policies (set with `--ask-for-approval` flag or `approval_policy` in `~/.codex/config.toml`):**</p>
+  <ul>
+    <li>**`untrusted`** — sandbox locks down everything, agent asks for almost any command.</li>
+    <li>**`on-failure`** — sandbox runs tools; only escalates when the sandbox blocks something.</li>
+    <li>**`on-request`** — sandbox plus model-driven escalation (the model can ask when it knows it needs more).</li>
+    <li>**`never`** — fully autonomous, no prompts. Pair with `--sandbox workspace-write` for safety.</li>
+  </ul>
+  <p>**When you see a prompt you don't understand**, deny it and ask the agent: "explain what that command would do and why you need it." This works in both tools and is faster than reverse-engineering the command yourself.</p>
+  <p>**Audit auto-approvals.** In auto/`bypassPermissions` mode, Claude Code keeps showing each tool call in the transcript with a badge so you can see what got auto-approved. Scroll back periodically. If something surprising slipped through, that's a deny rule you should add.</p>
+  <p>**MCP permission patterns.** MCP tools use the format `mcp__<server>__<tool>`. So `"allow": ["mcp__github__*"]` whitelists every GitHub MCP tool, `"deny": ["mcp__shell__*"]` blocks an entire MCP server, `"ask": ["mcp__db__delete_*"]` always prompts for destructive DB operations.</p>
+</UserTip>
 
 ### Decision 10: LLM-as-Judge
 
@@ -85,6 +106,17 @@ Codex captures everything in one atomic commit, including files the agent never 
 <Verdict>
   <p>Both approaches beat having no snapshots at all. If your agent edits files, snapshot state before each turn. The model will make mistakes. The question is whether recovering takes one command or thirty minutes of manual git archaeology. Codex's git-based approach is safer for autonomous agents (captures everything, including surprises). Claude Code's file-level approach is faster for interactive use (only backs up what the agent touched). If you're building this from scratch, start with git snapshots. The full-tree coverage is worth the extra disk.</p>
 </Verdict>
+
+<UserTip title="For users — undo after the agent breaks something">
+  <p>**Claude Code:** type `/rewind`. You'll see a list of recent file snapshots with timestamps. Pick one to restore. Each tool call that modifies files creates a snapshot. Up to 100 are kept.</p>
+  <p>**Codex:** the agent creates a detached git commit before each turn. To undo:</p>
+  <ul>
+    <li>`git reflog` shows all the per-turn snapshots.</li>
+    <li>`git reset --hard <sha>` restores everything (tracked AND untracked files at that snapshot).</li>
+    <li>`git stash` works too if you just want to revert local changes since the last commit.</li>
+  </ul>
+  <p>**If the agent proposes something destructive** (rm -rf, git push --force, dropping a database), pause and ask it to use a safer alternative. "Use `git stash` instead of `git checkout .`" or "delete specific files instead of `rm -rf`." Both tools warn before destructive commands but don't block them.</p>
+</UserTip>
 
 ### Bash Command Safety
 
