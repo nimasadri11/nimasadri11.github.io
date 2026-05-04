@@ -60,6 +60,44 @@
             background-size: 256px 256px;
         }
 
+        body { position: relative; }
+        .container { z-index: 1; }
+
+        :root { --scroll: 0; }
+
+        /* unified background composition — same vocabulary as the home page,
+           lighter set (no prism here): top-left nested arcs with parallax
+           drift on scroll, plus a continuously-morphing vertical wave on
+           the right gutter. */
+        .page-bg {
+            position: fixed;
+            inset: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* parallax drift: each ring shifts down-right at its own rate as
+           you scroll — appears to pull apart with depth */
+        .page-bg .fx-arcs .arc-outer {
+            transform: translate(calc(var(--scroll) * 6px), calc(var(--scroll) * 4px));
+        }
+        .page-bg .fx-arcs .arc-mid {
+            transform: translate(calc(var(--scroll) * 14px), calc(var(--scroll) * 10px));
+        }
+        .page-bg .fx-arcs .arc-inner {
+            transform: translate(calc(var(--scroll) * 26px), calc(var(--scroll) * 20px));
+        }
+
+        @media (max-width: 1100px) {
+            .page-bg { display: none; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .page-bg [class*="fx-"],
+            .page-bg .fx-arcs circle { transform: none !important; }
+        }
+
         /* ── Layout ── */
         .container {
             max-width: 700px;
@@ -362,6 +400,22 @@
     </style>
 </head>
 <body>
+
+    <!-- Unified background composition: arcs (top-left) + vertical wave (right gutter). -->
+    <svg class="page-bg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+
+        <!-- top-left corner arcs in three muted hues, parallax drift on scroll -->
+        <g class="fx-arcs" stroke-width="1" fill="none" opacity="0.45">
+            <circle class="arc-outer" cx="-180" cy="-120" r="520" stroke="#B05030"/>
+            <circle class="arc-mid"   cx="-180" cy="-120" r="380" stroke="#4A7C7E"/>
+            <circle class="arc-inner" cx="-180" cy="-120" r="240" stroke="#4A3E32"/>
+        </g>
+
+        <!-- vertical morphing wave (right gutter) — JS recomputes d each frame -->
+        <path class="wave-r" stroke="#4A3E32" stroke-width="1" fill="none" opacity="0.30"
+              d="M 1480 60 L 1480 940"/>
+    </svg>
+
     <div class="container">
 
         <a href="../" class="back-link">
@@ -384,6 +438,18 @@
         </header>
 
         <ol class="entries">
+
+            <li class="entry">
+                <a href="mona-lisa/" class="entry-link">
+                    <time class="entry-date">May 2026</time>
+                    <div class="entry-content">
+                        <h2 class="entry-title">Mona Lisa, in SVG</h2>
+                        <p class="entry-desc">A small experiment — the painting drawn entirely with hand-written SVG primitives</p>
+                        <span class="entry-tag">Artwork</span>
+                    </div>
+                    <svg class="entry-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </a>
+            </li>
 
             <li class="entry">
                 <a href="annotated-agent/" class="entry-link">
@@ -501,5 +567,57 @@
         </footer>
 
     </div>
+
+    <script>
+    // Scroll-driven background motion. Same pattern as the home page:
+    // rAF loop lerp-smooths scrollY into --scroll (CSS-driven motion)
+    // and re-samples the right-side wave as a sine path each frame.
+    (() => {
+        if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        const root = document.documentElement;
+        const waveR = document.querySelector('.wave-r');
+        const TWO_PI = Math.PI * 2;
+        const N = 80;
+
+        let target = 0, smoothed = 0, t0 = performance.now();
+
+        const updateTarget = () => {
+            const max = root.scrollHeight - window.innerHeight;
+            target = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
+        };
+
+        const buildVWave = (baseX, yStart, yEnd, amp, wavelen, phase) => {
+            const x0 = baseX + amp * Math.sin((yStart / wavelen) * TWO_PI + phase);
+            let d = `M ${x0.toFixed(2)} ${yStart}`;
+            const span = yEnd - yStart;
+            for (let i = 1; i <= N; i++) {
+                const y = yStart + (i / N) * span;
+                const x = baseX + amp * Math.sin((y / wavelen) * TWO_PI + phase);
+                d += ` L ${x.toFixed(2)} ${y.toFixed(1)}`;
+            }
+            return d;
+        };
+
+        const tick = (now) => {
+            smoothed += (target - smoothed) * 0.09;
+            if (Math.abs(target - smoothed) < 0.0005) smoothed = target;
+            root.style.setProperty('--scroll', smoothed.toFixed(4));
+
+            const elapsed = (now - t0) / 1000;
+            if (waveR) {
+                const amp = 7 + smoothed * 14;
+                const phase = elapsed * 0.22 + smoothed * Math.PI * 2;
+                waveR.setAttribute('d', buildVWave(1480, 60, 940, amp, 220, phase));
+            }
+
+            requestAnimationFrame(tick);
+        };
+
+        window.addEventListener('scroll', updateTarget, { passive: true });
+        window.addEventListener('resize', updateTarget, { passive: true });
+        updateTarget();
+        requestAnimationFrame(tick);
+    })();
+    </script>
 </body>
 </html>
