@@ -1,0 +1,551 @@
+/* Shared hand-drawn system for the writings.
+   One stylesheet behind every page here; the marks, colors and type match
+   nima.sadri.ai and sadri.ai. Each page supplies its own #wobble filter in a
+   defs <svg>, because CSS filter: url(#id) resolves against the current
+   document and an external sheet cannot carry the definition. */
+
+:root {
+    --ink-900: #0B0E14;
+    --ink-800: #161B24;
+    --ink-600: #444C5A;
+    --ink-500: #5C6675;
+    --ink-400: #808A99;
+    --ink-300: #AAB2BF;
+    --page:    #F5F7FA;
+    --card:    #FFFFFF;
+    --teal-600: #0E9084;
+    --teal-500: #16B0A3;
+    --teal-100: #E2FBF6;
+    --gold:    #F6C177;
+
+    --font-sans: 'Manrope', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    --font-hand: 'Kalam', 'Bradley Hand', cursive;
+    --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+    --hand-rule: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='8' viewBox='0 0 1200 8' preserveAspectRatio='none'%3E%3Cpath d='M0 4.7C148 2.9 296 6.1 456 4.3 618 2.5 762 6.2 902 4.6 1042 3.1 1132 5.6 1200 4.1' fill='none' stroke='rgba(11,14,20,0.22)' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+    --hand-rule-teal: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='10' viewBox='0 0 1200 10' preserveAspectRatio='none'%3E%3Cpath d='M0 5.4C148 2.4 296 7.4 456 4.6 618 1.8 762 7.6 902 5.2 1042 2.8 1132 6.8 1200 4.2' fill='none' stroke='%2316B0A3' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+}
+
+body {
+    position: relative;
+    background-color: var(--page);
+    background-image: radial-gradient(circle at 1px 1px, rgba(11,14,20,0.10) 1px, transparent 0);
+    background-size: 28px 28px;
+    color: var(--ink-800);
+    font-family: var(--font-sans);
+    font-size: 17px;
+    line-height: 1.65;
+    letter-spacing: -0.01em;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* paper tooth */
+body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    opacity: 0.5;
+    pointer-events: none;
+    z-index: 999;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 220 220' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+    background-size: 220px 220px;
+}
+
+.defs { position: absolute; width: 0; height: 0; }
+
+/* ── marginalia ───────────────────────── */
+
+.doodles { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+
+.doodles svg {
+    position: absolute;
+    fill: none;
+    stroke: var(--ink-800);
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: 0.55;
+}
+
+/* two classes, so this outranks the `.doodles svg` base rule */
+.doodles .teal { stroke: var(--teal-600); }
+
+.w1  { top: 4%;  left: 3%;    width: 66px; }
+.w2  { top: 12%; right: 3%;   width: 78px; }
+.w3  { top: 24%; left: 2.5%;  width: 44px; }
+.w4  { top: 36%; right: 2.5%; width: 56px; }
+.w5  { top: 48%; left: 3%;    width: 60px; }
+.w6  { top: 60%; right: 3%;   width: 48px; }
+.w7  { top: 72%; left: 2.5%;  width: 54px; }
+.w8  { top: 84%; right: 3%;   width: 62px; }
+.w9  { top: 93%; left: 3%;    width: 46px; }
+
+/* nothing lines up: every other mark leans the other way */
+.doodles svg:nth-child(3n)   { rotate: -8deg; }
+.doodles svg:nth-child(3n+1) { rotate: 6deg; }
+
+@media (max-width: 62rem) {
+    .doodles { display: none; }
+}
+
+/* ── shell ────────────────────────────── */
+
+.container {
+    position: relative;
+    z-index: 1;
+    max-width: 44rem;
+    margin: 0 auto;
+    padding: 4.5rem 1.5rem 5rem;
+}
+
+a { color: inherit; }
+
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-hand);
+    font-weight: 400;
+    font-size: 1.15rem;
+    color: var(--ink-500);
+    text-decoration: none;
+    margin-bottom: 3.5rem;
+    transform: rotate(-1.2deg);
+    transform-origin: left center;
+    transition: color 0.25s ease;
+}
+
+.back-link:hover { color: var(--teal-600); }
+.back-link svg { width: 26px; height: auto; transition: transform 0.25s cubic-bezier(0.34, 1.45, 0.64, 1); }
+.back-link:hover svg { transform: translateX(-5px); }
+
+/* ── article header ───────────────────── */
+
+.article-header, .page-header { margin-bottom: 3rem; }
+
+.title {
+    font-family: var(--font-sans);
+    font-weight: 800;
+    font-size: clamp(2.2rem, 6vw, 3.4rem);
+    line-height: 1.02;
+    letter-spacing: -0.04em;
+}
+
+/* highlighter swipe, for a .mark span inside a title */
+.title .mark { position: relative; display: inline-block; padding: 0 0.06em; }
+
+.title .mark::before {
+    content: '';
+    position: absolute;
+    left: -0.05em;
+    right: -0.05em;
+    bottom: 0.04em;
+    height: 0.3em;
+    background: var(--gold);
+    border-radius: 0.35em 0.9em 0.4em 0.7em;
+    transform: rotate(-1.1deg) scaleX(0);
+    transform-origin: left center;
+    z-index: -1;
+    animation: swipe 0.5s cubic-bezier(0.65, 0, 0.35, 1) 0.5s forwards;
+}
+
+@keyframes swipe { to { transform: rotate(-1.1deg) scaleX(1); } }
+
+.subtitle {
+    margin-top: 1rem;
+    font-family: var(--font-hand);
+    font-weight: 400;
+    font-size: 1.25rem;
+    line-height: 1.4;
+    color: var(--ink-600);
+    transform: rotate(-0.8deg);
+    transform-origin: left center;
+}
+
+/* the hairline divider becomes a drawn stroke */
+.divider {
+    width: 9rem;
+    height: 10px;
+    margin: 1.6rem 0 0;
+    background-image: var(--hand-rule-teal);
+    background-repeat: no-repeat;
+    background-size: 100% 10px;
+}
+
+.asterism {
+    display: block;
+    margin-top: 1.2rem;
+    font-family: var(--font-hand);
+    font-weight: 700;
+    font-size: 1.3rem;
+    color: var(--teal-500);
+    letter-spacing: 0.3em;
+}
+
+/* ── prose ────────────────────────────── */
+
+.content { font-weight: 500; color: var(--ink-600); }
+
+.content p { margin-bottom: 1.25rem; }
+
+.content > p:first-child { margin-top: 0; }
+
+.content h2 {
+    margin: 3rem 0 1.2rem;
+    font-weight: 800;
+    font-size: 1.5rem;
+    letter-spacing: -0.03em;
+    color: var(--ink-900);
+    display: inline-block;
+    padding-bottom: 8px;
+    background-image: var(--hand-rule-teal);
+    background-repeat: no-repeat;
+    background-position: bottom left;
+    background-size: 100% 8px;
+}
+
+.content h2:first-child { margin-top: 0; }
+
+.content h3 {
+    margin: 2.2rem 0 0.9rem;
+    font-weight: 700;
+    font-size: 1.15rem;
+    letter-spacing: -0.02em;
+    color: var(--ink-900);
+}
+
+.content strong { font-weight: 700; color: var(--ink-900); }
+
+.content em { font-style: normal; font-family: var(--font-hand); font-weight: 400; }
+
+.content a {
+    color: var(--teal-600);
+    font-weight: 700;
+    text-decoration: none;
+    border-bottom: 2px solid rgba(22,176,163,0.35);
+}
+
+.content a:hover { border-bottom-color: var(--teal-500); }
+
+.content ul, .content ol {
+    margin: 1.3rem 0;
+    padding-left: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.content li {
+    position: relative;
+    padding-left: 1.5rem;
+    line-height: 1.6;
+}
+
+/* hand-drawn tick instead of a bullet */
+.content ul > li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.62em;
+    width: 13px;
+    height: 6px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='13' height='6' viewBox='0 0 13 6'%3E%3Cpath d='M1 4.2C4 2.4 8 2.1 12 3.4' fill='none' stroke='%2316B0A3' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+}
+
+/* the implicit list-item counter, not a custom one: it honours the
+   <ol start> and <li value> attributes these posts rely on */
+.content ol > li { padding-left: 2rem; }
+
+.content ol > li::before {
+    content: counter(list-item);
+    position: absolute;
+    left: 0;
+    top: 0.1em;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--teal-600);
+}
+
+.content code {
+    font-family: var(--font-mono);
+    font-size: 0.82em;
+    background: var(--teal-100);
+    color: var(--teal-600);
+    padding: 0.15em 0.4em;
+    border-radius: 5px;
+}
+
+.content pre {
+    margin: 1.4rem 0 1.8rem;
+    padding: 1.3rem 1.5rem;
+    background: var(--ink-900);
+    border-radius: 12px 16px 10px 14px;
+    overflow-x: auto;
+    line-height: 1.55;
+}
+
+.content pre code {
+    background: none;
+    color: #E2E7ED;
+    padding: 0;
+    font-size: 0.78rem;
+    display: block;
+}
+
+.content blockquote {
+    margin: 1.6rem 0;
+    padding-left: 1.2rem;
+    border-left: 3px dashed var(--teal-500);
+    font-family: var(--font-hand);
+    font-weight: 400;
+    font-size: 1.15rem;
+    color: var(--ink-500);
+}
+
+.content img { max-width: 100%; height: auto; border-radius: 10px 14px 8px 12px; }
+
+.content figure { margin: 2rem 0; }
+
+.content figcaption {
+    margin-top: 0.6rem;
+    font-family: var(--font-hand);
+    font-weight: 300;
+    font-size: 1rem;
+    color: var(--ink-400);
+}
+
+/* ── notes & callouts ─────────────────── */
+
+.note, .callout {
+    position: relative;
+    margin: 2rem 0;
+    padding: 1.2rem 1.4rem;
+    background: var(--card);
+    border-radius: 14px 18px 12px 16px;
+    font-size: 0.95rem;
+    color: var(--ink-600);
+}
+
+/* the outline lives on a pseudo-element so the wobble filter
+   never touches the text */
+.note::before, .callout::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 2.2px solid var(--ink-800);
+    border-radius: 14px 18px 12px 16px;
+    filter: url(#wobble);
+}
+
+.note { transform: rotate(-0.5deg); }
+.callout { transform: rotate(0.4deg); }
+
+.callout strong, .note strong { color: var(--teal-600); }
+
+/* ── embeds & tables ──────────────────── */
+
+.content figure.terminal-embed {
+    width: 100%;
+    max-width: 100%;
+    position: static;
+    transform: none;
+}
+
+.content figure.terminal-embed iframe {
+    width: 100%;
+    display: block;
+    border: 2.5px solid var(--ink-800);
+    border-radius: 12px 16px 10px 14px;
+    background: #0d1117;
+    box-shadow: 7px 8px 0 var(--teal-500);
+    overflow: hidden;
+}
+
+.result-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 2rem 0;
+    font-size: 0.9rem;
+}
+
+.result-table th, .result-table td {
+    padding: 0.7rem 0.9rem;
+    text-align: left;
+    background-image: var(--hand-rule);
+    background-repeat: no-repeat;
+    background-position: bottom left;
+    background-size: 100% 8px;
+}
+
+.result-table th {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-900);
+}
+
+.result-table td.win { color: var(--teal-600); font-weight: 700; }
+.result-table td.num { font-family: var(--font-mono); font-size: 0.82em; }
+
+/* ── writings index ───────────────────── */
+
+.intro {
+    margin-top: 1.4rem;
+    font-weight: 500;
+    color: var(--ink-600);
+    max-width: 34rem;
+}
+
+.entries {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+}
+
+.entry { position: relative; }
+
+.entry-link {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 1.2rem;
+    padding: 1.3rem 1.4rem;
+    background: var(--card);
+    border-radius: 16px 20px 14px 22px;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.28s cubic-bezier(0.34, 1.45, 0.64, 1);
+}
+
+.entry-link::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 2.2px solid var(--ink-800);
+    border-radius: 16px 20px 14px 22px;
+    filter: url(#wobble);
+}
+
+.entry:nth-child(even) .entry-link { transform: rotate(-0.4deg); }
+.entry:nth-child(odd)  .entry-link { transform: rotate(0.3deg); }
+
+.entry-link:hover, .entry-link:focus-visible {
+    transform: translate(-2px, -4px) rotate(0.5deg);
+}
+
+.entry-link:focus-visible { outline: 3px dashed var(--teal-600); outline-offset: 6px; }
+
+.entry-date {
+    position: relative;
+    flex: none;
+    width: 5.5rem;
+    padding-top: 0.25rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--ink-400);
+}
+
+.entry-content { position: relative; flex: 1; }
+
+.entry-title {
+    font-weight: 800;
+    font-size: 1.15rem;
+    line-height: 1.25;
+    letter-spacing: -0.03em;
+    color: var(--ink-900);
+}
+
+.entry-desc {
+    margin-top: 0.25rem;
+    font-size: 0.92rem;
+    font-weight: 500;
+    color: var(--ink-600);
+}
+
+.entry-tag {
+    display: inline-block;
+    margin-top: 0.7rem;
+    font-family: var(--font-hand);
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--teal-600);
+    transform: rotate(-1.5deg);
+}
+
+.entry-arrow {
+    position: relative;
+    flex: none;
+    width: 30px;
+    height: auto;
+    align-self: center;
+    color: var(--teal-600);
+    transition: transform 0.28s cubic-bezier(0.34, 1.45, 0.64, 1);
+}
+
+.entry-link:hover .entry-arrow { transform: translateX(6px); }
+
+/* ── footer ───────────────────────────── */
+
+.page-footer {
+    margin-top: 5rem;
+    padding-top: 1.4rem;
+    background-image: var(--hand-rule);
+    background-repeat: no-repeat;
+    background-position: top left;
+    background-size: 100% 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--ink-400);
+}
+
+.page-footer a { color: var(--teal-600); text-decoration: none; }
+
+/* ── entrance ─────────────────────────── */
+
+@keyframes rise {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: none; }
+}
+
+.article-header, .page-header, .content, .entries {
+    opacity: 0;
+    animation: rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.article-header, .page-header { animation-delay: 0.05s; }
+.content, .entries { animation-delay: 0.25s; }
+
+@media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .article-header, .page-header, .content, .entries { opacity: 1; animation: none; }
+    .title .mark::before { transform: rotate(-1.1deg); animation: none; }
+    .entry-link, .entry-arrow, .back-link svg { transition: none; }
+}
+
+@media (max-width: 34rem) {
+    body { font-size: 16px; }
+    .container { padding: 3rem 1.15rem 3.5rem; }
+    .entry-link { flex-wrap: wrap; gap: 0.5rem 1rem; padding: 1.15rem 1.2rem; }
+    .entry-date { width: auto; padding-top: 0; order: -1; }
+    .entry-arrow { display: none; }
+}

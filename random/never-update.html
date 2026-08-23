@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Software That Will Never Need Another Update — Nima Sadri</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Kalam:wght@300;400;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="doodle.css">
+</head>
+<body>
+    <svg class="defs" aria-hidden="true">
+        <filter id="wobble" x="-25%" y="-25%" width="150%" height="150%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.012" numOctaves="3" seed="38" result="noise"/>
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="3"/>
+        </filter>
+    </svg>
+
+    <div class="doodles" aria-hidden="true">
+        <svg class="w1" viewBox="0 0 60 60"><path d="M30 30c0-5 6-5 6 1s-8 8-12 2 4-16 14-11 10 20 0 26-26 2-30-11"/></svg>
+        <svg class="w2 teal" viewBox="0 0 90 52"><path d="M20 38c-9 0-13-6-11-12s9-8 12-6c1-9 9-14 17-11s10 8 10 12c7-3 15 1 15 8s-6 9-11 9z"/><path d="M28 46h34"/></svg>
+        <svg class="w3" viewBox="0 0 40 40"><path d="M20 4c1 10 5 15 16 16-11 1-15 6-16 16-1-10-5-15-16-16 11-1 15-6 16-16z"/></svg>
+        <svg class="w4" viewBox="0 0 40 40"><path d="M22 3 9 23h8l-3 14 13-19h-8z"/></svg>
+        <svg class="w5 teal" viewBox="0 0 40 44"><path d="M20 4a11 11 0 0 0-6.5 19.8c1.2 1 2.1 2.6 2.3 4.2h8.4c.2-1.6 1.1-3.2 2.3-4.2A11 11 0 0 0 20 4z"/><path d="M16 33h8M17.5 37.5h5"/></svg>
+        <svg class="w6" viewBox="0 0 60 30"><path d="M3 15c4.5-9 9-9 13.5 0s9 9 13.5 0 9-9 13.5 0 9 9 13.5 0"/></svg>
+        <svg class="w7 teal" viewBox="0 0 40 40"><circle cx="20" cy="20" r="15"/><path d="M13 20.5l5 5 10-11"/></svg>
+        <svg class="w8" viewBox="0 0 70 70"><path d="M35 8v16M35 46v16M8 35h16M46 35h16M16 16l11 11M43 43l11 11M54 16L43 27M27 43 16 54"/></svg>
+        <svg class="w9" viewBox="0 0 40 40"><path d="M20 34C9 26 5 19 5 13c0-5 3.5-8 7.5-8 3 0 6 2 7.5 4.5C21.5 7 24.5 5 27.5 5c4 0 7.5 3 7.5 8 0 6-4 13-15 21z"/></svg>
+    </div>
+
+    <div class="container">
+        <a href="./" class="back-link">
+            <svg viewBox="0 0 34 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M32 8.5c-9-1.5-19-1.5-29-0.5"/><path d="M10 3L3 8.2l6.5 5"/></svg>
+            All Writings
+        </a>
+
+        <header class="article-header">
+            <h1 class="title">The Software That Will Never Need Another Update</h1>
+            <p class="subtitle">grep, SQLite, curl, TeX &mdash; and what they teach us about building things that last</p>
+            <div class="divider"></div>
+        </header>
+
+        <div class="content">
+            <p>grep was written in 1973. awk in 1977. TeX was declared finished by Donald Knuth in 1990. SQLite hasn't broken backwards compatibility in over twenty years. curl has been shipping since 1998 without a single breaking change to its API.</p>
+
+            <p>These programs are done.</p>
+
+            <p>Not dead. Not abandoned. Not &ldquo;legacy.&rdquo; Done &mdash; the way a hammer is done. They solved their problems. They carry the load. They've been carrying it for decades. And they'll keep carrying it long after we're all migrating to whatever framework ships next Tuesday.</p>
+
+            <h2>The Gallery of Done Software</h2>
+
+            <p><strong>TeX.</strong> Knuth started writing it in 1977 and declared the design frozen in 1990. Its version number converges toward pi &mdash; currently 3.14159265. When Knuth dies, the version freezes at exactly pi, and any remaining bugs become permanent features by definition. The man wrote a typesetting system so correct that his final act of confidence was making all future errors definitional. TeX has been essentially unchanged for over 35 years. Every academic paper you've ever read was probably typeset with it.</p>
+
+            <p><strong>SQLite.</strong> It runs on every phone on earth. Every Mac. Every Windows PC. Every web browser. Every copy of Skype, iTunes, and Dropbox. It's probably the most deployed piece of software in human history, and it's essentially maintained by one person. SQLite has over 90 million lines of test code &mdash; roughly 590 times more test code than source code. Not because they're paranoid. Because when you ship inside every device on the planet, you don't get to push a hotfix. The result: over two decades without a breaking API change. The SQLite developers have pledged to support it through the year 2050. Their stated goal: &ldquo;make the content you store in SQLite today as easily accessible to your grandchildren as it is to you.&rdquo;</p>
+
+            <p><strong>curl.</strong> Daniel Stenberg has been maintaining it since 1998. It runs on everything from Teslas to Nintendo Switches to Mars rovers. It has never broken backwards compatibility. Scripts written against curl in 2003 still work today, unmodified. Stenberg treats backwards compatibility as a promise, not a constraint. He treats his API the way a stonemason treats a cathedral wall &mdash; you build it once and you build it right.</p>
+
+            <p><strong>The Unix tools.</strong> sort. grep. sed. awk. cat. wc. Written in the 1970s, still doing exactly what they did then. Their interfaces are ugly by modern standards &mdash; cryptic single-letter flags, no color output, man pages that read like assembly documentation. But they work. They compose. And a shell script that pipes grep into awk into sort runs the same today as it did when Jimmy Carter was president.</p>
+
+            <p>These aren't relics. They're the greatest hits of our industry. Each one represents the rarest thing in software engineering: a program that solved its problem so completely that it never needed to be solved again.</p>
+
+            <p>We should be building more things like this. Instead, we're building the opposite.</p>
+
+            <h2>The Horror</h2>
+
+            <p>I mass-merged fifteen Dependabot PRs this morning. Didn't read a single changelog. Three of them were for transitive dependencies four levels deep &mdash; packages I've never heard of. npm audit was yelling about six &ldquo;critical vulnerabilities,&rdquo; all in dev dependencies that never touch production. You do the same thing. Everyone does.</p>
+
+            <p>A fresh <code>create-react-app</code> pulls in nearly 1,500 packages. To render a div. The lockfile alone is 40,000 lines and you couldn't name what half those packages do.</p>
+
+            <p>Last week a colleague's app broke in production because a package they used depended on a package that depended on a package that shipped a &ldquo;minor&rdquo; version bump that wasn't minor. Nobody did anything wrong. The dependency graph itself is the problem.</p>
+
+            <p>In 2016, a developer unpublished an 11-line npm package called left-pad &mdash; a function that pads a string with spaces. It broke React. It broke Babel. It broke thousands of projects across the internet. Eleven lines of code that half the JavaScript ecosystem depended on, written by a stranger, controlled by no one. We didn't learn anything from it. Six years later, a maintainer of colors.js and faker.js &mdash; packages downloaded tens of millions of times per week &mdash; deliberately sabotaged his own code to protest not being paid. He pushed an infinite loop to npm and broke CI pipelines across Fortune 500 companies. The whole edifice shook because one tired person decided to stop holding it up for free.</p>
+
+            <p>This is the foundation we're building on.</p>
+
+            <p>You spend somewhere between 5 and 10 hours a week on maintenance that has nothing to do with your actual product. Updating deps. Fixing CI. Chasing deprecation warnings. Migrating to a new major version of a framework that renamed half its methods and changed the config format for the third time. This isn't engineering. It's a tax. And it compounds every week. And now AI agents are writing code that pulls in even more dependencies &mdash; because they don't feel the pain of maintaining them.</p>
+
+            <p>We've built our software on foundations we can't inspect, maintained by strangers we've never met, funded by no one.</p>
+
+            <p>There was a thread on Hacker News recently where a 60-year-old developer said the reason he quit was &ldquo;the never-ending rat race of keeping up with the latest bizarre web stacks.&rdquo; Over a thousand people upvoted it. Nobody disagreed.</p>
+
+            <p>And we call this progress.</p>
+
+            <h2>What &ldquo;Done&rdquo; Actually Means</h2>
+
+            <p>The programs in the Gallery didn't end up this way by accident. There's a pattern.</p>
+
+            <p><strong>Solve one problem.</strong> grep finds patterns in text. It doesn't also format text, compile text, or serve text over HTTP. If you solve one well-defined problem, and the problem doesn't change, your software doesn't need to either.</p>
+
+            <p><strong>Depend on nothing.</strong> SQLite has zero external dependencies. curl can be built with or without optional libraries. TeX ships as a single program. Every dependency is a bet that someone else will maintain their code forever. That's a bad bet.</p>
+
+            <p><strong>Get the interface right, then freeze it.</strong> curl has added flags over 28 years but has never removed or changed one. grep's interface hasn't changed in 50 years. The interface is the contract. Once people depend on it, changing it costs more than any new feature could justify. This matters even more now that agents write code &mdash; they can use curl reliably because the interface is stable. A library that ships breaking changes every six months is a library agents will get wrong.</p>
+
+            <p><strong>Test like you won't get another chance.</strong> SQLite doesn't have 90 million lines of test code because they're obsessive. They have them because they ship into environments where &ldquo;just push a patch&rdquo; isn't an option. If you want software that doesn't need updates, you catch the bugs before you ship &mdash; because you're not shipping again.</p>
+
+            <p><strong>Choose boring technology.</strong> Every program in the Gallery is written in C. Not because C is the best language. Because C will be here in 50 years. If you build your software on this year's hot framework, you'll be rewriting it when the ecosystem moves on. Done software is written in languages that will outlive their authors.</p>
+
+            <h2>The Paradox</h2>
+
+            <p>Here's what nobody talks about.</p>
+
+            <p>The best software disappears. You don't think about grep. You don't think about SQLite. You don't think about the JPEG decoder or gzip or the DNS resolver running on your machine right now. They're just there. Working. Silently. While you're over here fighting with your node_modules folder and mass-merging Dependabot PRs and reading migration guides for React 47.</p>
+
+            <p>The software that demands your constant attention is the software that isn't done yet. And most modern software will never be done &mdash; not because the problems are harder, but because it was never designed to be finished. It was designed to be iterated on. To &ldquo;evolve.&rdquo; To grow.</p>
+
+            <p>But growth isn't always progress. Nobody promotes the engineer who writes a tool that works for twenty years without changes. There's no conference talk in &ldquo;I built a thing and then I stopped.&rdquo; The industry has convinced itself that shipping is the only virtue, that velocity is the only metric, that if you're not iterating you're dead.</p>
+
+            <p>Meanwhile, grep just sits there. Working. For half a century.</p>
+
+            <p>Sometimes a program is finished the same way a proof is finished. There's nothing to add and nothing to take away.</p>
+
+            <h2>The Challenge</h2>
+
+            <p>Can you build something this year that will work, unchanged, in 2036?</p>
+
+            <p>Not an app with a database and a frontend and 47 API integrations. Something small. Something focused. A CLI tool. A file format parser. A compression utility. A text processor. Something with zero dependencies, a stable interface, and a test suite that would make the SQLite team nod.</p>
+
+            <p>Write it in a language that will outlive you. Give it an interface you'd be comfortable freezing forever. Test it until you trust it more than you trust yourself.</p>
+
+            <p>Then stop. Put it on a shelf. Come back in ten years. If it still works &mdash; no updates, no migrations, no breaking changes, no Dependabot PRs &mdash; you've done something that almost nobody in this industry does anymore.</p>
+
+            <p>You've built something that's done.</p>
+        </div>
+
+        <footer class="page-footer">
+            <span>Nima Sadri</span>
+            <a href="./">Back to writings</a>
+        </footer>
+    </div>
+
+</body>
+</html>

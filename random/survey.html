@@ -2,7 +2,7 @@
 <html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Transformer-Based IR Models — Nima Sadri</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Kalam:wght@300;400;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 /* cspell:disable-file */
 /* webkit printing magic: print all background colors */
@@ -659,134 +659,170 @@ blockquote {
 }
 
 
-/* ── Editorial design overrides ── */
+/* ── Doodle-system overrides ──
+   The Notion export brings its own stylesheet, so this block re-themes it onto
+   the same tokens as doodle.css. It cannot simply link that sheet: the class
+   names here are Notion's, not ours. */
 html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 
 body {
-    background-color: #F6F1EB !important;
-    color: #1C1917 !important;
-    font-family: 'Crimson Text', Georgia, 'Times New Roman', serif !important;
-    font-size: 18px !important;
-    line-height: 1.75 !important;
+    background-color: #F5F7FA !important;
+    background-image: radial-gradient(circle at 1px 1px, rgba(11,14,20,0.10) 1px, transparent 0) !important;
+    background-size: 28px 28px !important;
+    color: #444C5A !important;
+    font-family: 'Manrope', -apple-system, BlinkMacSystemFont, system-ui, sans-serif !important;
+    font-size: 17px !important;
+    line-height: 1.65 !important;
+    letter-spacing: -0.01em !important;
     white-space: normal !important;
 }
 
+/* paper tooth */
 body::after {
     content: '';
     position: fixed;
     inset: 0;
-    opacity: 0.35;
+    opacity: 0.5;
     pointer-events: none;
     z-index: 999;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-    background-size: 256px 256px;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 220 220' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+    background-size: 220px 220px;
 }
 
 @media only screen {
-    body { margin: 0 auto !important; max-width: 700px !important; padding: 0 28px !important; }
+    body { margin: 0 auto !important; max-width: 44rem !important; padding: 0 1.5rem !important; }
 }
 
 .page-cover-image { display: none !important; }
 .page-header-icon { display: none !important; }
 
 .page-title {
-    font-family: 'Cormorant Garamond', Georgia, serif !important;
-    font-weight: 600 !important;
-    font-size: clamp(2rem, 5vw, 2.8rem) !important;
-    line-height: 1.2 !important;
-    letter-spacing: -0.02em !important;
-    margin-bottom: 1.5rem !important;
-    padding-top: 2rem !important;
+    font-family: 'Manrope', system-ui, sans-serif !important;
+    font-weight: 800 !important;
+    font-size: clamp(2.2rem, 6vw, 3.2rem) !important;
+    line-height: 1.02 !important;
+    letter-spacing: -0.04em !important;
+    color: #0B0E14 !important;
+    margin-bottom: 2rem !important;
+    padding-top: 1.5rem !important;
 }
 
 h1, h2, h3 {
-    font-family: 'Cormorant Garamond', Georgia, serif !important;
-    color: #1C1917;
+    font-family: 'Manrope', system-ui, sans-serif !important;
+    color: #0B0E14 !important;
+    letter-spacing: -0.03em !important;
 }
 
-h1 { font-size: 1.6rem !important; font-weight: 600 !important; margin-top: 3rem !important; }
-h2 { font-size: 1.35rem !important; font-weight: 600 !important; margin-top: 2.5rem !important; }
-h3 { font-size: 1.15rem !important; font-weight: 600 !important; }
+/* the teal scribble under a heading, same mark the essays use */
+h1, h2 {
+    display: inline-block;
+    padding-bottom: 8px !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='10' viewBox='0 0 1200 10' preserveAspectRatio='none'%3E%3Cpath d='M0 5.4C148 2.4 296 7.4 456 4.6 618 1.8 762 7.6 902 5.2 1042 2.8 1132 6.8 1200 4.2' fill='none' stroke='%2316B0A3' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: bottom left;
+    background-size: 100% 8px;
+}
 
-a, a.visited { color: #B05030 !important; text-decoration-color: rgba(176, 80, 48, 0.3); }
-a:hover { text-decoration-color: #B05030; }
+h1 { font-size: 1.6rem !important; font-weight: 800 !important; margin-top: 3rem !important; }
+h2 { font-size: 1.35rem !important; font-weight: 800 !important; margin-top: 2.5rem !important; }
+h3 { font-size: 1.1rem !important; font-weight: 700 !important; }
+
+strong { color: #0B0E14 !important; }
+
+a, a.visited {
+    color: #0E9084 !important;
+    font-weight: 700;
+    text-decoration: none !important;
+    border-bottom: 2px solid rgba(22,176,163,0.35);
+}
+
+a:hover { border-bottom-color: #16B0A3; }
 
 .callout {
-    background: rgba(176, 80, 48, 0.05) !important;
-    border-left: 3px solid #B05030;
-    border-radius: 0 4px 4px 0 !important;
-    padding: 1rem 1.2rem !important;
-    margin: 1.5rem 0;
+    background: #FFFFFF !important;
+    border: 2.2px solid #161B24 !important;
+    border-left: 2.2px solid #161B24 !important;
+    border-radius: 14px 18px 12px 16px !important;
+    padding: 1.2rem 1.4rem !important;
+    margin: 1.8rem 0 !important;
+    transform: rotate(-0.4deg);
 }
 
 code {
-    font-family: 'SFMono-Regular', Menlo, Consolas, monospace !important;
-    background: rgba(176, 80, 48, 0.08) !important;
-    color: #B05030 !important;
-    border-radius: 3px;
+    font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace !important;
+    background: #E2FBF6 !important;
+    color: #0E9084 !important;
+    border-radius: 5px;
+    font-size: 0.82em !important;
 }
 
 .code {
-    background: #1C1917 !important;
-    border-radius: 6px !important;
-    padding: 1.4rem 1.6rem !important;
-    margin: 1.2rem 0 1.8rem !important;
+    background: #0B0E14 !important;
+    border-radius: 12px 16px 10px 14px !important;
+    padding: 1.3rem 1.5rem !important;
+    margin: 1.4rem 0 1.8rem !important;
 }
 
 .code code, .code > code {
     background: none !important;
-    color: #E8E0D4 !important;
-    font-size: 0.82rem !important;
+    color: #E2E7ED !important;
+    font-size: 0.78rem !important;
 }
 
 .table_of_contents-link {
-    color: #78716C !important;
-    border-bottom-color: #DDD5CA !important;
+    color: #5C6675 !important;
+    font-weight: 500;
+    border-bottom: none !important;
 }
 
-.table_of_contents-link:hover { color: #1C1917 !important; }
+.table_of_contents-link:hover { color: #0E9084 !important; }
 
-ol > li::marker, ul > li::marker {
-    color: #B0A898;
-}
+ol > li::marker, ul > li::marker { color: #16B0A3; }
 
-.block-color-gray_background { background: rgba(176, 80, 48, 0.05) !important; }
+.block-color-gray_background { background: #E2FBF6 !important; }
 
 .back-nav {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    font-family: 'Crimson Text', serif;
-    font-size: 0.9rem;
-    color: #78716C;
+    gap: 0.5rem;
+    font-family: 'Kalam', 'Bradley Hand', cursive;
+    font-size: 1.15rem;
+    color: #5C6675;
     text-decoration: none !important;
-    margin: 7vh 0 2vh;
-    transition: color 0.3s ease;
+    border-bottom: none !important;
+    margin: 4rem 0 2rem;
+    transform: rotate(-1.2deg);
+    transition: color 0.25s ease;
 }
-.back-nav:hover { color: #1C1917 !important; }
-.back-nav svg { width: 15px; height: 15px; transition: transform 0.3s ease; }
-.back-nav:hover svg { transform: translateX(-3px); }
+
+.back-nav:hover { color: #0E9084 !important; }
+.back-nav svg { width: 26px; height: auto; transition: transform 0.25s cubic-bezier(0.34, 1.45, 0.64, 1); }
+.back-nav:hover svg { transform: translateX(-5px); }
 
 .page-footer-custom {
-    margin-top: 8vh;
-    padding: 2rem 0 10vh;
-    border-top: 1px solid #DDD5CA;
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 0.85rem;
-    color: #A8A29E;
+    margin-top: 5rem;
+    padding: 1.4rem 0 6rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='8' viewBox='0 0 1200 8' preserveAspectRatio='none'%3E%3Cpath d='M0 4.7C148 2.9 296 6.1 456 4.3 618 2.5 762 6.2 902 4.6 1042 3.1 1132 5.6 1200 4.1' fill='none' stroke='rgba(11,14,20,0.22)' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: top left;
+    background-size: 100% 8px;
+    border-top: none;
+    font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+    font-size: 0.72rem;
+    color: #808A99;
     display: flex;
     justify-content: space-between;
 }
-.page-footer-custom a { color: #78716C !important; text-decoration: none !important; transition: color 0.3s; }
-.page-footer-custom a:hover { color: #1C1917 !important; }
 
-@media (max-width: 600px) {
-    body { padding: 0 20px !important; }
+.page-footer-custom a { color: #0E9084 !important; text-decoration: none !important; border-bottom: none !important; }
+
+@media (max-width: 34rem) {
+    body { padding: 0 1.15rem !important; font-size: 16px !important; }
     .code { margin-left: -10px; margin-right: -10px; border-radius: 0 !important; }
 }
 
 </style></head><body>
-<a href="./" class="back-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> All Writings</a><article id="edebc3f1-4aa4-400b-a603-1960a6723c19" class="page sans"><header><img class="page-cover-image" src="https://images.unsplash.com/photo-1432821596592-e2c18b78144f?ixlib=rb-1.2.1&amp;q=85&amp;fm=jpg&amp;crop=entropy&amp;cs=srgb" style="object-position:center 6.230000000000002%"/><div class="page-header-icon page-header-icon-with-cover"><span class="icon">🖋️</span></div><h1 class="page-title">Transformer-Based Information Retrieval Models: A Short Survey</h1></header><div class="page-body"><p id="784e218c-98db-40ea-894d-bf4f71fb15c9" class="">These notes and tables are largely based on <a href="https://arxiv.org/abs/2010.06467"><em>Pretrained Transformers for Text Ranking: BERT and Beyond</em></a><em>.</em></p><p id="1a9ce5d6-23df-4f12-a9db-9d61919ae860" class="">There might be mistakes in this article. Seek the original source (see above) for confirmation if something doesn&#x27;t make sense. email me if you find any mistakes so I can fix them.</p><p id="7879fc5c-cf9c-4d3b-8095-3ea51cbeabb3" class="">
+<a href="./" class="back-nav"><svg viewBox="0 0 34 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M32 8.5c-9-1.5-19-1.5-29-0.5"/><path d="M10 3L3 8.2l6.5 5"/></svg> All Writings</a><article id="edebc3f1-4aa4-400b-a603-1960a6723c19" class="page sans"><header><img class="page-cover-image" src="https://images.unsplash.com/photo-1432821596592-e2c18b78144f?ixlib=rb-1.2.1&amp;q=85&amp;fm=jpg&amp;crop=entropy&amp;cs=srgb" style="object-position:center 6.230000000000002%"/><div class="page-header-icon page-header-icon-with-cover"><span class="icon">🖋️</span></div><h1 class="page-title">Transformer-Based Information Retrieval Models: A Short Survey</h1></header><div class="page-body"><p id="784e218c-98db-40ea-894d-bf4f71fb15c9" class="">These notes and tables are largely based on <a href="https://arxiv.org/abs/2010.06467"><em>Pretrained Transformers for Text Ranking: BERT and Beyond</em></a><em>.</em></p><p id="1a9ce5d6-23df-4f12-a9db-9d61919ae860" class="">There might be mistakes in this article. Seek the original source (see above) for confirmation if something doesn&#x27;t make sense. email me if you find any mistakes so I can fix them.</p><p id="7879fc5c-cf9c-4d3b-8095-3ea51cbeabb3" class="">
 </p><nav id="cc4973e9-6556-4e75-90ff-1bbf0584987e" class="block-color-gray table_of_contents"><div class="table_of_contents-item table_of_contents-indent-0"><a class="table_of_contents-link" href="#8481f2a2-2f1e-4cca-b14e-0d74d71e4fd8">1. <strong>Sparse Methods</strong></a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#544a7f08-3090-4cd9-8f5c-c2fe9b7cfc38">1.1. <strong>monoBERT</strong></a></div><div class="table_of_contents-item table_of_contents-indent-2"><a class="table_of_contents-link" href="#6cfd92cc-4bfa-4f7a-82cd-2c331b6f952f">CAL Pseudocode</a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#63802e99-4411-4ea6-af61-6d7335a054ba"><strong>1.2. duoBERT</strong></a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#d286e1e1-c1fd-487c-a08a-b85aee9d859b">1.3. monoT5</a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#8f9516a1-e254-4af0-af04-eede807b84b1">1.4. duoT5</a></div><div class="table_of_contents-item table_of_contents-indent-0"><a class="table_of_contents-link" href="#85e2252a-5cca-4853-90ee-751f8216e99d">2<strong>. Dense Methods</strong></a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#2adaa658-d30c-491b-98df-d7166916bcd3">2.1. DPR</a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#0d75dabf-0f20-4a6c-a112-6935a8656133">2.2. ANCE</a></div><div class="table_of_contents-item table_of_contents-indent-0"><a class="table_of_contents-link" href="#22f7e7ad-b1f2-4733-8240-a04bc986ee1c">Sparse vs. Dense</a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#34a17b29-29f4-4851-9d3f-fadbb7dc2e96">PreTTR</a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#53334191-11ac-4bd9-a201-8ccaa9744b1f">Poly-Encoders</a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#2e452c55-80eb-4847-8104-b55fbed908d3">ME-BERT</a></div><div class="table_of_contents-item table_of_contents-indent-1"><a class="table_of_contents-link" href="#b140a0f3-6cbf-4c28-9f6f-c12ee8946bed">ColBERT</a></div><div class="table_of_contents-item table_of_contents-indent-0"><a class="table_of_contents-link" href="#89ac32e8-0bc4-4c3f-9359-ac6432b13637">Acknowledgements</a></div></nav><p id="679658fd-0755-407c-aab6-439d085fd9cb" class="">
 </p><p id="626de358-ad55-474c-8e09-608df7e067ee" class="">In short, there are 3 different types of Transformer IR models:</p><ol type="1" id="1de0173d-6ad8-4152-9f6c-9d1b2b54828e" class="numbered-list" start="1"><li>Sparse Methods</li></ol><ol type="1" id="8a8c2a72-7200-4c2a-83bf-edaca3e0449a" class="numbered-list" start="2"><li>Dense Methods:</li></ol><ol type="1" id="f8f73356-8512-4c7a-86dc-43191c8dc205" class="numbered-list" start="3"><li>Hybrid Methods: Combines Sparse and Dense</li></ol><p id="dee88019-a7c7-4f3a-9e0e-9b33afd9246f" class="">We will discuss each and compare them. </p><h1 id="8481f2a2-2f1e-4cca-b14e-0d74d71e4fd8" class="">1. <strong>Sparse Methods</strong></h1><p id="f91c0669-3ea7-445d-9cb6-48d8d20af348" class="">Sparse retrieval methods work as follows:</p><ol type="1" id="6b7c3677-e3c0-4537-a8b4-0374170a4cc3" class="numbered-list" start="1"><li>TF-IDF, Bag-of-Words (BoWs) exact-matching, or BM25 are used to retrieve k documents</li></ol><ol type="1" id="07134ab6-e6a8-4f1b-91f0-a5008c73f4d5" class="numbered-list" start="2"><li>The k documents are then reranked using a more sophisticated model, such as a neural network</li></ol><p id="10a246e3-5f55-472b-8ec6-bda73fa85b4c" class="">Part (b) is of special interest.  We shall explain some models that are used for this purpose. For this purpose, we will use the following notation:</p><ul id="3efbcab3-76ea-40bc-90c1-3e93777ab155" class="bulleted-list"><li style="list-style-type:disc">Let docs = all documents</li></ul><ul id="df3faeca-90e4-4d01-8e09-56302396ac32" class="bulleted-list"><li style="list-style-type:disc">Let first-docs = documents retrieved in the first stage by BM25 (“first” refers to first stage)<ul id="57764e7d-8150-4901-825e-5843610656c0" class="bulleted-list"><li style="list-style-type:circle">Given sentence <style>@import url('https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.2/katex.min.css')</style><span data-token-index="0" contenteditable="false" class="notion-text-equation-token" style="user-select:all;-webkit-user-select:all;-moz-user-select:all"><span></span><span><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>S</mi><mo>=</mo><mo stretchy="false">[</mo><msub><mi>w</mi><mn>1</mn></msub><mo separator="true">,</mo><msub><mi>w</mi><mn>2</mn></msub><mo separator="true">,</mo><mo>…</mo><mo separator="true">,</mo><msub><mi>w</mi><mi>t</mi></msub><mo stretchy="false">]</mo></mrow><annotation encoding="application/x-tex">S = [w_1, w_2, …, w_t]</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.68333em;vertical-align:0em;"></span><span class="mord mathnormal" style="margin-right:0.05764em;">S</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">[</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.02691em;">w</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.02691em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.02691em;">w</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.02691em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="minner">…</span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.02691em;">w</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2805559999999999em;"><span style="top:-2.5500000000000003em;margin-left:-0.02691em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">]</span></span></span></span></span><span>﻿</span></span> consisting of words <style>@import url('https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.2/katex.min.css')</style><span data-token-index="0" contenteditable="false" class="notion-text-equation-token" style="user-select:all;-webkit-user-select:all;-moz-user-select:all"><span></span><span><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>w</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">w_i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.58056em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.02691em;">w</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.31166399999999994em;"><span style="top:-2.5500000000000003em;margin-left:-0.02691em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span></span><span>﻿</span></span>, <style>@import url('https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.2/katex.min.css')</style><span data-token-index="0" contenteditable="false" class="notion-text-equation-token" style="user-select:all;-webkit-user-select:all;-moz-user-select:all"><span></span><span><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>B</mi><mi>E</mi><mi>R</mi><mi>T</mi><mo stretchy="false">(</mo><mi>S</mi><mo stretchy="false">)</mo><mo stretchy="false">[</mo><msub><mi>w</mi><mi>i</mi></msub><mo stretchy="false">]</mo></mrow><annotation encoding="application/x-tex">BERT(S)[w_i]</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.13889em;">BERT</span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.05764em;">S</span><span class="mclose">)</span><span class="mopen">[</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.02691em;">w</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.31166399999999994em;"><span style="top:-2.5500000000000003em;margin-left:-0.02691em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">]</span></span></span></span></span><span>﻿</span></span> refers to the embedding created for <style>@import url('https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.2/katex.min.css')</style><span data-token-index="0" contenteditable="false" class="notion-text-equation-token" style="user-select:all;-webkit-user-select:all;-moz-user-select:all"><span></span><span><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>w</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">w_i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.58056em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.02691em;">w</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.31166399999999994em;"><span style="top:-2.5500000000000003em;margin-left:-0.02691em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span></span><span>﻿</span></span> when running  through BERT. That is <style>@import url('https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.2/katex.min.css')</style><span data-token-index="0" contenteditable="false" class="notion-text-equation-token" style="user-select:all;-webkit-user-select:all;-moz-user-select:all"><span></span><span><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>B</mi><mi>E</mi><mi>R</mi><mi>T</mi><mo stretchy="false">(</mo><mi>S</mi><mo stretchy="false">)</mo><mo>=</mo><mo stretchy="false">[</mo><mi>B</mi><mi>E</mi><mi>R</mi><mi>T</mi><mo stretchy="false">(</mo><mi>S</mi><mo stretchy="false">)</mo><mo stretchy="false">[</mo><msub><mi>w</mi><mn>1</mn></msub><mo stretchy="false">]</mo><mo separator="true">,</mo><mi>B</mi><mi>E</mi><mi>R</mi><mi>T</mi><mo stretchy="false">(</mo><mi>S</mi><mo stretchy="false">)</mo><mo stretchy="false">[</mo><msub><mi>w</mi><mn>2</mn></msub><mo separator="true">,</mo><mo>…</mo><mo separator="true">,</mo><mi>B</mi><mi>E</mi><mi>R</mi><mi>T</mi><mo stretchy="false">(</mo><mi>S</mi><mo stretchy="false">)</mo><mo stretchy="false">[</mo><msub><mi>w</mi><mi>t</mi></msub><mo stretchy="false">]</mo><mo stretchy="false">]</mo></mrow><annotation encoding="application/x-tex">BERT(S) = [BERT(S)[w_1], BERT(S)[w_2, …, BERT(S)[w_t]]</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.13889em;">BERT</span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.05764em;">S</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">[</span><span class="mord mathnormal" style="margin-right:0.13889em;">BERT</span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.05764em;">S</span><span class="mclose">)</span><span class="mopen">[</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.02691em;">w</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.02691em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">]</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord mathnormal" style="margin-right:0.13889em;">BERT</span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.05764em;">S</span><span class="mclose">)</span><span class="mopen">[</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.02691em;">w</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.02691em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="minner">…</span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord mathnormal" style="margin-right:0.13889em;">BERT</span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.05764em;">S</span><span class="mclose">)</span><span class="mopen">[</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.02691em;">w</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2805559999999999em;"><span style="top:-2.5500000000000003em;margin-left:-0.02691em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">]]</span></span></span></span></span><span>﻿</span></span></li></ul></li></ul><h2 id="544a7f08-3090-4cd9-8f5c-c2fe9b7cfc38" class="">1.1. <strong>monoBERT</strong></h2><p id="52ba9311-08e0-4324-b16e-a38575bd449f" class="">We start with a pre-trained checkpoint of BERT.</p><p id="cb053bd8-bd37-4950-9b28-9b412843f202" class="">Given query q, BM25 to generate first-docs. Then:</p><pre id="5bab9f8b-467e-4aa6-ad7c-2860bd9660ab" class="code"><code>For d in first-docs:
 	S = [CLS]  d  [SEP]  q [SEP]
