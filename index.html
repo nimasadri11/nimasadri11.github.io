@@ -6,662 +6,630 @@
     <title>Nima Sadri — Co-Founder & Chief of Agents, Agents2Agents</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Kalam:wght@300;400;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #F6F1EB;
-            --text: #1C1917;
-            --text-muted: #78716C;
-            --text-light: #A8A29E;
-            --divider: #DDD5CA;
-            --accent-warm: #B05030;
-            --accent-teal: #4A7C7E;
-            --accent-blue: #3D6B99;
-            --accent-green: #5A7F60;
-            --accent-purple: #7E5F8E;
-            --accent-gold: #B8860B;
+            /* shared with sadri.ai and the a2a design tokens — same hand */
+            --ink-900: #0B0E14;
+            --ink-800: #161B24;
+            --ink-600: #444C5A;
+            --ink-500: #5C6675;
+            --ink-400: #808A99;
+            --ink-300: #AAB2BF;
+            --page:    #F5F7FA;
+            --card:    #FFFFFF;
+            --teal-600: #0E9084;
+            --teal-500: #16B0A3;
+            --teal-100: #E2FBF6;
+            --gold:    #F6C177;
+
+            --font-sans: 'Manrope', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+            --font-hand: 'Kalam', 'Bradley Hand', cursive;
+            --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+            --hand-rule: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='8' viewBox='0 0 1200 8' preserveAspectRatio='none'%3E%3Cpath d='M0 4.7C148 2.9 296 6.1 456 4.3 618 2.5 762 6.2 902 4.6 1042 3.1 1132 5.6 1200 4.1' fill='none' stroke='rgba(11,14,20,0.22)' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+            --hand-rule-teal: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='10' viewBox='0 0 1200 10' preserveAspectRatio='none'%3E%3Cpath d='M0 5.4C148 2.4 296 7.4 456 4.6 618 1.8 762 7.6 902 5.2 1042 2.8 1132 6.8 1200 4.2' fill='none' stroke='%2316B0A3' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E");
         }
 
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-        html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; scroll-behavior: smooth; }
+
+        html {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            scroll-behavior: smooth;
+            -webkit-text-size-adjust: 100%;
+        }
 
         body {
-            background-color: var(--bg);
-            color: var(--text);
-            font-family: 'Crimson Text', Georgia, 'Times New Roman', serif;
-            font-size: 18px;
-            line-height: 1.75;
+            position: relative;
+            background-color: var(--page);
+            background-image: radial-gradient(circle at 1px 1px, rgba(11,14,20,0.10) 1px, transparent 0);
+            background-size: 28px 28px;
+            color: var(--ink-800);
+            font-family: var(--font-sans);
+            font-size: 17px;
+            line-height: 1.6;
+            letter-spacing: -0.01em;
             min-height: 100vh;
             overflow-x: hidden;
         }
 
+        /* paper tooth */
         body::after {
             content: '';
             position: fixed;
             inset: 0;
-            opacity: 0.35;
+            opacity: 0.5;
             pointer-events: none;
             z-index: 999;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-            background-size: 256px 256px;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 220 220' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+            background-size: 220px 220px;
         }
 
-        /* ══════════════════════════════════════
-           UNIFIED BACKGROUND COMPOSITION
-           One fixed SVG holds every geometric mark:
-           corner arcs, hatched triangle, rotated
-           squares, vertical timeline, hero halo
-           with orbiting accent. The shapes that
-           used to float in the side gutters are
-           now baked into the page's visual ground.
-           ══════════════════════════════════════ */
-        body { position: relative; }
-        .page { position: relative; z-index: 1; }
+        .defs { position: absolute; width: 0; height: 0; }
 
-        :root { --scroll: 0; }
+        /* ── margin doodles ───────────────────
+           ink marks pinned to the page, not the viewport, so they scroll
+           past like notes in a margin */
+        .doodles { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
 
-        .page-bg {
-            position: fixed;
-            inset: 0;
-            width: 100vw;
-            height: 100vh;
-            pointer-events: none;
-            z-index: 0;
+        .doodles svg {
+            position: absolute;
+            fill: none;
+            stroke: var(--ink-800);
+            stroke-width: 2.2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            opacity: 0.6;
         }
 
-        /* scroll-driven motion. JS lerp-smooths --scroll; no rotations,
-           kept subtle. Each element drifts/scales by a few px or a few %. */
-        /* top-left arcs parallax: each ring drifts down-right at a
-           different rate on scroll. Inner ring drifts most, outer least
-           — creates a depth-shift as if the rings are at different "z" */
-        .page-bg .fx-arcs .arc-outer {
-            transform: translate(calc(var(--scroll) * 6px), calc(var(--scroll) * 4px));
-        }
-        .page-bg .fx-arcs .arc-mid {
-            transform: translate(calc(var(--scroll) * 14px), calc(var(--scroll) * 10px));
-        }
-        .page-bg .fx-arcs .arc-inner {
-            transform: translate(calc(var(--scroll) * 26px), calc(var(--scroll) * 20px));
-        }
+        .doodles .teal { stroke: var(--teal-600); }
 
-        /* PRISM SEQUENCING. The two halves of the scroll range run
-           the two halves of the optics narrative:
-             scroll 0..0.5 → input lines extend toward the prism
-             scroll 0.5..1 → spectrum rays draw out the other side
-           min()/max() clamp the timing so each phase only fires in its half. */
+        .g1 { top: 3%;  left: 4%;  width: 74px; }
+        .g2 { top: 14%; right: 3%; width: 88px; }
+        .g3 { top: 33%; left: 3%;  width: 56px; }
+        .g4 { top: 52%; right: 4%; width: 66px; }
+        .g5 { top: 70%; left: 4%;  width: 80px; }
+        .g6 { top: 88%; right: 4%; width: 60px; }
 
-        /* spectrum rays: hidden until scroll passes 0.5, then reveal */
-        .page-bg .fx-prism line {
-            stroke-dasharray: 200;
-            stroke-dashoffset: calc(200 - 200 * max(0, var(--scroll) * 2 - 1));
-            opacity: 0.55;
-        }
-
-        /* triangle rule lines extend rightward into the prism, reaching
-           the slanted left edge by scroll = 0.5; held there afterward */
-        .page-bg .fx-triangle line:nth-of-type(1) {
-            transform-origin: 60px 500px;
-            transform: scaleX(calc(1 + 0.26 * min(1, var(--scroll) * 2)));
-        }
-        .page-bg .fx-triangle line:nth-of-type(2) {
-            transform-origin: 60px 510px;
-            transform: scaleX(calc(1 + 0.46 * min(1, var(--scroll) * 2)));
-        }
-        .page-bg .fx-triangle line:nth-of-type(3) {
-            transform-origin: 60px 520px;
-            transform: scaleX(calc(1 + 0.62 * min(1, var(--scroll) * 2)));
-        }
-
-        /* stack: the rotated square rotates BACK to align with the
-           axis-aligned one as you scroll. starts at 20°, ends at 0°. */
-        .page-bg .fx-stack-align {
-            transform-box: fill-box;
-            transform-origin: center;
-            transform: rotate(calc(20deg - var(--scroll) * 20deg));
-        }
-
-
-
-        @media (max-width: 1100px) {
-            .page-bg { display: none; }
-        }
-        @media (prefers-reduced-motion: reduce) {
-            .page-bg [class*="fx-"],
-            .page-bg .fx-triangle line { transform: none !important; }
-        }
+        /* ── page shell ───────────────────── */
 
         .page {
-            max-width: 780px;
+            position: relative;
+            z-index: 1;
+            max-width: 46rem;
             margin: 0 auto;
-            padding: 8vh 32px 14vh;
+            padding: 5rem 1.5rem 4rem;
         }
 
-        /* ══════════════════════════════════════
-           HERO — asymmetric, confident
-           ══════════════════════════════════════ */
+        a { color: inherit; }
+
+        /* ── hero ─────────────────────────── */
+
         .hero {
-            display: grid;
-            grid-template-columns: 1fr 150px;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
             gap: 2rem;
-            align-items: end;
-            margin-bottom: 3.5rem;
-            animation: fadeUp 0.7s ease-out both;
         }
-
-        .hero-text { min-width: 0; }
 
         .name {
-            font-family: 'Cormorant Garamond', Georgia, serif;
-            font-weight: 300;
-            font-size: clamp(3.2rem, 8vw, 4.8rem);
-            line-height: 0.95;
-            letter-spacing: -0.035em;
-            color: var(--text);
-            margin-bottom: 1rem;
+            font-family: var(--font-sans);
+            font-weight: 800;
+            font-size: clamp(3rem, 9vw, 4.5rem);
+            line-height: 0.96;
+            letter-spacing: -0.04em;
         }
 
-        .name em {
-            font-style: italic;
-            font-weight: 300;
+        /* highlighter swipe, drawn on load */
+        .name .mark { position: relative; display: inline-block; padding: 0 0.06em; }
+
+        .name .mark::before {
+            content: '';
+            position: absolute;
+            left: -0.05em;
+            right: -0.05em;
+            bottom: 0.04em;
+            height: 0.3em;
+            background: var(--gold);
+            border-radius: 0.35em 0.9em 0.4em 0.7em;
+            transform: rotate(-1.1deg) scaleX(0);
+            transform-origin: left center;
+            z-index: -1;
+            animation: swipe 0.5s cubic-bezier(0.65, 0, 0.35, 1) 0.55s forwards;
         }
+
+        @keyframes swipe { to { transform: rotate(-1.1deg) scaleX(1); } }
 
         .role {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-            font-size: 0.7rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.18em;
-            color: var(--accent-warm);
+            margin-top: 0.9rem;
+            font-family: var(--font-hand);
+            font-weight: 400;
+            font-size: 1.3rem;
+            line-height: 1.3;
+            color: var(--ink-800);
+            transform: rotate(-1.4deg);
+            transform-origin: left center;
         }
 
+        .role a { text-decoration: none; border-bottom: 2px solid var(--teal-500); }
+        .role a:hover { color: var(--teal-600); }
+
+        /* headshot as a pinned polaroid */
         .headshot {
-            width: 150px;
-            height: 150px;
-            border-radius: 50%;
+            flex: none;
+            width: 132px;
+            height: 156px;
             object-fit: cover;
-            filter: grayscale(10%) contrast(1.03);
-            animation: fadeUp 0.7s ease-out 0.12s both;
+            background: var(--card);
+            padding: 8px;
+            border: 2.5px solid var(--ink-800);
+            border-radius: 4px;
+            transform: rotate(2.5deg);
+            box-shadow: 7px 8px 0 var(--teal-500);
+            transition: transform 0.3s cubic-bezier(0.34, 1.45, 0.64, 1), box-shadow 0.3s ease;
         }
 
-        /* ── Intro paragraph ── */
+        .headshot:hover {
+            transform: rotate(-1.5deg) translateY(-4px);
+            box-shadow: 11px 13px 0 var(--teal-500);
+        }
+
         .intro {
-            font-size: 1.1rem;
-            color: var(--text-muted);
-            line-height: 1.85;
-            max-width: 600px;
-            margin-bottom: 2rem;
-            animation: fadeUp 0.6s ease-out 0.15s both;
+            margin-top: 2rem;
+            font-weight: 500;
+            color: var(--ink-600);
+            max-width: 38rem;
         }
 
         .intro a {
-            color: var(--accent-warm);
-            text-decoration-color: rgba(176, 80, 48, 0.3);
-            transition: text-decoration-color 0.3s;
+            color: var(--ink-900);
+            font-weight: 700;
+            text-decoration: none;
+            padding-bottom: 3px;
+            background-image: var(--hand-rule-teal);
+            background-repeat: no-repeat;
+            background-position: bottom left;
+            background-size: 100% 6px;
         }
-        .intro a:hover { text-decoration-color: var(--accent-warm); }
 
-        /* ── Contact row ── */
+        .intro a:hover { color: var(--teal-600); }
+
+        /* ── contact chips ────────────────── */
+
         .contact-row {
+            margin-top: 1.75rem;
             display: flex;
             flex-wrap: wrap;
-            gap: 0.8rem 2.2rem;
-            animation: fadeUp 0.6s ease-out 0.2s both;
+            gap: 0.7rem;
         }
 
         .contact-item {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            position: relative;
+            padding: 0.4rem 0.95rem;
+            font-family: var(--font-mono);
             font-size: 0.78rem;
-            letter-spacing: 0.02em;
-            color: var(--text-muted);
+            font-weight: 500;
+            color: var(--ink-800);
             text-decoration: none;
-            transition: color 0.3s;
-        }
-        a.contact-item:hover { color: var(--text); }
-
-        /* ══════════════════════════════════════
-           SECTIONS — colored left accent borders
-           ══════════════════════════════════════ */
-        .section {
-            margin-top: 5.5rem;
+            transition: color 0.25s ease, transform 0.25s cubic-bezier(0.34, 1.45, 0.64, 1);
         }
 
-        .section-head {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            margin-bottom: 1.8rem;
+        /* the outline lives on a pseudo-element so the wobble filter
+           never touches the text */
+        .contact-item::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border: 2px solid var(--ink-800);
+            border-radius: 14px 18px 12px 16px;
+            filter: url(#wobble);
         }
 
-        .section-accent {
-            width: 4px;
-            height: 28px;
-            border-radius: 2px;
-            flex-shrink: 0;
-        }
+        .contact-item:nth-child(2) { transform: rotate(-1deg); }
+        .contact-item:nth-child(3) { transform: rotate(0.8deg); }
+
+        a.contact-item:hover { color: var(--teal-600); transform: translateY(-3px) rotate(0deg); }
+
+        /* ── sections ─────────────────────── */
+
+        .section { margin-top: 4.5rem; }
+
+        .section-head { margin-bottom: 1.75rem; }
+
+        /* the old vertical accent bar is now a drawn underline */
+        .section-accent { display: none; }
 
         .section-label {
-            font-family: 'Cormorant Garamond', serif;
+            display: inline-block;
+            font-family: var(--font-sans);
+            font-weight: 800;
+            font-size: 1.5rem;
+            letter-spacing: -0.03em;
+            padding-bottom: 8px;
+            background-image: var(--hand-rule-teal);
+            background-repeat: no-repeat;
+            background-position: bottom left;
+            background-size: 100% 8px;
+        }
+
+        /* ── writing ──────────────────────── */
+
+        .writings-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-family: var(--font-hand);
             font-weight: 700;
-            font-size: 1.6rem;
-            letter-spacing: -0.01em;
-            line-height: 1;
+            font-size: 1.4rem;
+            color: var(--teal-600);
+            text-decoration: none;
+            transform: rotate(-1.2deg);
+            transform-origin: left center;
+            transition: transform 0.25s ease;
         }
 
-        /* Color each section */
-        .section--experience .section-accent { background: var(--accent-warm); }
-        .section--publications .section-accent { background: var(--accent-blue); }
-        .section--education .section-accent { background: var(--accent-green); }
-        .section--stack .section-accent { background: var(--accent-purple); }
-        .section--writing .section-accent { background: var(--accent-gold); }
-        .section--references .section-accent { background: var(--accent-teal); }
+        .writings-link svg { width: 22px; transition: transform 0.25s cubic-bezier(0.34, 1.45, 0.64, 1); }
+        .writings-link:hover svg { transform: translateX(6px); }
 
-        /* ══════════════════════════════════════
-           EXPERIENCE
-           ══════════════════════════════════════ */
+        .aside {
+            margin-top: 1.1rem;
+            font-family: var(--font-hand);
+            font-weight: 300;
+            font-size: 1.1rem;
+            color: var(--ink-500);
+        }
+
+        /* ── experience ───────────────────── */
+
         .exp-entry {
-            padding: 1.6rem 0 1.6rem 1.2rem;
-            border-left: 2px solid var(--divider);
-            margin-left: 1px;
             position: relative;
-            transition: border-color 0.3s;
+            padding-left: 1.5rem;
+            margin-top: 2.5rem;
         }
 
-        .exp-entry:hover {
-            border-left-color: var(--accent-warm);
-        }
+        .exp-entry:first-of-type { margin-top: 0; }
 
-        .exp-entry + .exp-entry {
-            margin-top: 0;
+        /* a wobbly ink stem down the left of each role */
+        .exp-entry::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0.5rem;
+            bottom: 0.4rem;
+            width: 2px;
+            background: var(--ink-300);
+            filter: url(#wobble);
         }
 
         .exp-header {
             display: flex;
-            justify-content: space-between;
             align-items: baseline;
+            justify-content: space-between;
             gap: 1rem;
-            margin-bottom: 0.3rem;
+            flex-wrap: wrap;
         }
 
         .exp-company {
-            font-family: 'Cormorant Garamond', serif;
-            font-weight: 700;
-            font-size: 1.4rem;
-            line-height: 1.25;
-            letter-spacing: -0.01em;
+            font-weight: 800;
+            font-size: 1.3rem;
+            letter-spacing: -0.03em;
         }
 
+        .exp-company a { text-decoration: none; }
+        .exp-company a:hover { color: var(--teal-600); }
+
         .exp-period {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-            font-size: 0.68rem;
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
             font-weight: 500;
-            letter-spacing: 0.04em;
-            color: var(--text-light);
+            color: var(--ink-400);
             white-space: nowrap;
-            flex-shrink: 0;
         }
 
         .exp-role {
-            font-size: 0.95rem;
-            color: var(--accent-warm);
-            font-style: italic;
-            margin-bottom: 0.7rem;
-            font-weight: 600;
+            margin-top: 0.1rem;
+            font-family: var(--font-hand);
+            font-weight: 400;
+            font-size: 1.15rem;
+            line-height: 1.3;
+            color: var(--teal-600);
         }
 
         .exp-bullets {
+            margin-top: 0.9rem;
             list-style: none;
-            padding: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.55rem;
         }
 
         .exp-bullets li {
             position: relative;
-            padding-left: 1.1rem;
-            margin-bottom: 0.3rem;
-            font-size: 0.92rem;
-            color: var(--text-muted);
-            line-height: 1.65;
+            padding-left: 1.35rem;
+            font-size: 0.95rem;
+            font-weight: 500;
+            line-height: 1.55;
+            color: var(--ink-600);
         }
 
+        /* hand-drawn tick instead of a bullet */
         .exp-bullets li::before {
-            content: '\2014';
+            content: '';
             position: absolute;
             left: 0;
-            color: var(--divider);
-            font-weight: 600;
+            top: 0.62em;
+            width: 13px;
+            height: 6px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='13' height='6' viewBox='0 0 13 6'%3E%3Cpath d='M1 4.2C4 2.4 8 2.1 12 3.4' fill='none' stroke='%2316B0A3' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
         }
 
-        /* ══════════════════════════════════════
-           PUBLICATIONS
-           ══════════════════════════════════════ */
-        .pub-entry {
-            padding: 1.1rem 0;
-            border-bottom: 1px solid var(--divider);
+        .exp-bullets a {
+            color: var(--teal-600);
+            font-weight: 700;
+            text-decoration: none;
+            border-bottom: 2px solid rgba(22,176,163,0.35);
         }
-        .pub-entry:first-of-type { border-top: 1px solid var(--divider); }
+
+        .exp-bullets a:hover { border-bottom-color: var(--teal-500); }
+
+        /* ── publications ─────────────────── */
+
+        .pub-entry {
+            padding: 1.05rem 0;
+            background-image: var(--hand-rule);
+            background-repeat: no-repeat;
+            background-position: bottom left;
+            background-size: 100% 8px;
+        }
+
+        .pub-title {
+            font-weight: 700;
+            font-size: 1.05rem;
+            letter-spacing: -0.02em;
+            line-height: 1.35;
+        }
+
+        .pub-title a { text-decoration: none; }
+        .pub-title a:hover { color: var(--teal-600); }
 
         .pub-number {
-            font-family: 'Cormorant Garamond', serif;
-            font-weight: 700;
-            font-size: 0.85rem;
-            color: var(--accent-blue);
-            margin-right: 0.5rem;
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            font-weight: 500;
+            color: var(--teal-600);
+            margin-right: 0.55rem;
         }
-
-        .pub-title a {
-            font-family: 'Cormorant Garamond', serif;
-            font-weight: 600;
-            font-size: 1.12rem;
-            color: var(--text);
-            text-decoration: none;
-            transition: color 0.3s;
-        }
-        .pub-title a:hover { color: var(--accent-blue); }
 
         .pub-meta {
-            font-size: 0.82rem;
-            color: var(--text-muted);
-            margin-top: 0.15rem;
+            margin-top: 0.2rem;
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            color: var(--ink-400);
         }
 
         .pub-note {
-            font-size: 0.9rem;
-            color: var(--text-light);
-            font-style: italic;
-            margin-top: 1.2rem;
+            margin-top: 1.1rem;
+            font-family: var(--font-hand);
+            font-weight: 300;
+            font-size: 1.05rem;
+            color: var(--ink-500);
+            transform: rotate(-0.8deg);
+            transform-origin: left center;
         }
 
-        /* ══════════════════════════════════════
-           EDUCATION
-           ══════════════════════════════════════ */
+        /* ── education ────────────────────── */
+
         .edu-degree {
-            font-family: 'Cormorant Garamond', serif;
-            font-weight: 600;
+            font-weight: 800;
             font-size: 1.3rem;
-            margin-bottom: 0.15rem;
+            letter-spacing: -0.03em;
         }
 
         .edu-details {
-            font-size: 0.92rem;
-            color: var(--text-muted);
+            margin-top: 0.2rem;
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            color: var(--ink-500);
         }
 
-        /* ══════════════════════════════════════
-           TECH STACK
-           ══════════════════════════════════════ */
+        /* ── stack ────────────────────────── */
+
         .stack-grid {
             display: flex;
             flex-wrap: wrap;
-            gap: 0.5rem 0.65rem;
+            gap: 0.65rem;
         }
 
         .stack-tag {
-            font-family: 'SFMono-Regular', Menlo, Consolas, monospace;
-            font-size: 0.73rem;
-            color: var(--text-muted);
-            background: rgba(126, 95, 142, 0.06);
-            padding: 0.3rem 0.7rem;
-            border-radius: 3px;
-            border: 1px solid rgba(126, 95, 142, 0.15);
-            transition: all 0.3s ease;
-            cursor: default;
+            position: relative;
+            padding: 0.35rem 0.85rem;
+            font-family: var(--font-mono);
+            font-size: 0.76rem;
+            font-weight: 500;
+            color: var(--ink-600);
+            transition: color 0.25s ease, transform 0.25s cubic-bezier(0.34, 1.45, 0.64, 1);
         }
 
-        .stack-tag:hover {
-            color: var(--accent-purple);
-            border-color: var(--accent-purple);
-            background: rgba(126, 95, 142, 0.08);
+        .stack-tag::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border: 2px solid var(--ink-300);
+            border-radius: 13px 17px 11px 15px;
+            filter: url(#wobble);
         }
 
-        /* ══════════════════════════════════════
-           WRITINGS LINK
-           ══════════════════════════════════════ */
-        .writings-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            font-family: 'Cormorant Garamond', serif;
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: var(--accent-gold);
-            text-decoration: none;
-            transition: gap 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-        }
-        .writings-link:hover { gap: 16px; }
-        .writings-link svg {
-            width: 18px; height: 18px;
-            transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-        }
-        .writings-link:hover svg { transform: translateX(4px); }
+        /* alternate the tilt so the row reads as hand-placed labels */
+        .stack-tag:nth-child(3n)   { transform: rotate(-1.4deg); }
+        .stack-tag:nth-child(3n+1) { transform: rotate(0.9deg); }
 
-        .aside {
-            font-size: 0.88rem;
-            color: var(--text-light);
-            font-style: italic;
-            margin-top: 1.5rem;
-        }
+        .stack-tag:hover { color: var(--teal-600); transform: rotate(0deg) translateY(-3px); }
 
-        /* ══════════════════════════════════════
-           REFERENCES — pull-quote style
-           ══════════════════════════════════════ */
+        /* ── references ───────────────────── */
+
         .ref-grid {
-            display: grid;
-            gap: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.6rem;
         }
 
         .ref-card {
             position: relative;
-            padding: 1.4rem 0 1.4rem 1.4rem;
-            border-left: 3px solid var(--accent-teal);
+            padding: 1.5rem 1.6rem 1.35rem;
+            background: var(--card);
+            border-radius: 16px 20px 14px 22px;
         }
+
+        .ref-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border: 2.2px solid var(--ink-800);
+            border-radius: 16px 20px 14px 22px;
+            filter: url(#wobble);
+        }
+
+        .ref-card:nth-child(even) { transform: rotate(-0.45deg); }
+        .ref-card:nth-child(odd)  { transform: rotate(0.35deg); }
 
         .ref-quote {
             font-size: 0.95rem;
-            color: var(--text-muted);
-            line-height: 1.7;
-            font-style: italic;
-            margin-bottom: 0.7rem;
+            font-weight: 500;
+            line-height: 1.6;
+            color: var(--ink-600);
         }
 
         .ref-quote::before {
-            content: '\201C';
-            font-family: 'Cormorant Garamond', serif;
-            font-size: 2.5rem;
+            content: '“';
+            font-family: var(--font-hand);
             font-weight: 700;
-            color: var(--accent-teal);
-            opacity: 0.35;
-            position: absolute;
-            left: 1.2rem;
-            top: 0.4rem;
-            line-height: 1;
-        }
-
-        .ref-author {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-            font-size: 0.72rem;
-            font-weight: 600;
-            letter-spacing: 0.03em;
-            color: var(--text);
-        }
-
-        .ref-author-title {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-            font-size: 0.68rem;
-            color: var(--text-light);
-            letter-spacing: 0.01em;
+            font-size: 2.4rem;
+            line-height: 0;
+            color: var(--teal-500);
+            margin-right: 0.15rem;
+            vertical-align: -0.35rem;
         }
 
         .ref-disclosure {
-            font-size: 0.78rem;
-            color: var(--text-light);
-            font-style: italic;
-            margin-top: -0.3rem;
-            margin-bottom: 0.3rem;
+            margin-top: 0.7rem;
+            font-family: var(--font-hand);
+            font-weight: 300;
+            font-size: 1rem;
+            color: var(--ink-400);
+        }
+
+        .ref-author {
+            margin-top: 1rem;
+            padding-top: 0.85rem;
+            background-image: var(--hand-rule);
+            background-repeat: no-repeat;
+            background-position: top left;
+            background-size: 100% 8px;
+            font-weight: 700;
+            font-size: 1rem;
+            letter-spacing: -0.02em;
+        }
+
+        .ref-author-title {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: var(--ink-400);
         }
 
         .ref-footer {
-            font-size: 0.85rem;
-            color: var(--text-light);
-            margin-top: 2rem;
-            font-style: italic;
+            margin-top: 1.6rem;
+            font-family: var(--font-hand);
+            font-weight: 300;
+            font-size: 1.05rem;
+            color: var(--ink-500);
         }
 
-        .ref-footer a {
-            color: var(--accent-teal);
-            text-decoration-color: rgba(74, 124, 126, 0.3);
-            transition: text-decoration-color 0.3s;
-        }
-        .ref-footer a:hover { text-decoration-color: var(--accent-teal); }
+        .ref-footer a { color: var(--teal-600); text-decoration: none; border-bottom: 2px solid rgba(22,176,163,0.35); }
 
-        /* ══════════════════════════════════════
-           FOOTER
-           ══════════════════════════════════════ */
+        /* ── footer ───────────────────────── */
+
         .page-footer {
-            margin-top: 8vh;
-            padding-top: 2rem;
-            border-top: 1px solid var(--divider);
-            font-family: 'Cormorant Garamond', serif;
-            font-size: 0.85rem;
-            color: var(--text-light);
+            margin-top: 5rem;
+            padding-top: 1.4rem;
+            background-image: var(--hand-rule);
+            background-repeat: no-repeat;
+            background-position: top left;
+            background-size: 100% 8px;
             display: flex;
             justify-content: space-between;
+            align-items: center;
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            color: var(--ink-400);
         }
 
-        .page-footer a {
-            color: var(--text-muted);
-            text-decoration: none;
-            transition: color 0.3s;
-        }
-        .page-footer a:hover { color: var(--text); }
+        .page-footer a { color: var(--teal-600); text-decoration: none; }
 
-        /* ══════════════════════════════════════
-           ANIMATIONS
-           ══════════════════════════════════════ */
-        @keyframes fadeUp {
-            from { opacity: 0; transform: translateY(22px); }
-            to { opacity: 1; transform: translateY(0); }
+        /* ── entrance ─────────────────────── */
+
+        @keyframes rise {
+            from { opacity: 0; transform: translateY(14px); }
+            to   { opacity: 1; transform: none; }
         }
 
-        .section:nth-of-type(1) { animation: fadeUp 0.55s ease-out 0.28s both; }
-        .section:nth-of-type(2) { animation: fadeUp 0.55s ease-out 0.36s both; }
-        .section:nth-of-type(3) { animation: fadeUp 0.55s ease-out 0.44s both; }
-        .section:nth-of-type(4) { animation: fadeUp 0.55s ease-out 0.52s both; }
-        .section:nth-of-type(5) { animation: fadeUp 0.55s ease-out 0.60s both; }
-        .section:nth-of-type(6) { animation: fadeUp 0.55s ease-out 0.68s both; }
-        .page-footer { animation: fadeUp 0.5s ease-out 0.76s both; }
-
-        /* ══════════════════════════════════════
-           RESPONSIVE
-           ══════════════════════════════════════ */
-        @media (max-width: 600px) {
-            .page { padding: 5vh 20px 10vh; }
-
-            .hero {
-                grid-template-columns: 1fr;
-                gap: 1.5rem;
-            }
-
-            .hero-text { order: 2; }
-
-            .headshot {
-                width: 110px;
-                height: 110px;
-                order: 1;
-            }
-
-            .name { font-size: clamp(2.6rem, 11vw, 3.4rem); }
-
-            .exp-header {
-                flex-direction: column;
-                gap: 0.1rem;
-            }
-
-            .exp-period { order: -1; }
-
-            .contact-row { gap: 0.5rem 1.4rem; }
-
-            .page-footer {
-                flex-direction: column;
-                gap: 4px;
-                text-align: center;
-            }
-
-            .ref-card { padding-left: 1.1rem; }
+        .hero, .intro, .contact-row {
+            opacity: 0;
+            animation: rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
         }
 
-        @media print {
-            body::after { display: none; }
-            .headshot { filter: none; }
-            .exp-entry { break-inside: avoid; }
-            .ref-card { break-inside: avoid; }
+        .hero        { animation-delay: 0.05s; }
+        .intro       { animation-delay: 0.30s; }
+        .contact-row { animation-delay: 0.45s; }
+
+        @media (prefers-reduced-motion: reduce) {
+            html { scroll-behavior: auto; }
+            .hero, .intro, .contact-row { opacity: 1; animation: none; }
+            .name .mark::before { transform: rotate(-1.1deg); animation: none; }
+            .headshot, .contact-item, .stack-tag, .writings-link svg { transition: none; }
+        }
+
+        @media (max-width: 46rem) {
+            .doodles { display: none; }
+        }
+
+        @media (max-width: 34rem) {
+            body { font-size: 16px; }
+            .page { padding: 3rem 1.15rem 3rem; }
+            .hero { flex-direction: column-reverse; align-items: flex-start; gap: 1.5rem; }
+            .headshot { width: 108px; height: 128px; }
+            .exp-header { gap: 0.2rem; }
+            .exp-period { width: 100%; }
+            .ref-card { padding: 1.25rem 1.2rem 1.1rem; }
         }
     </style>
 </head>
 <body>
-    <!-- ══════════════════════════════════════
-         Unified background composition.
-         Every geometric mark — corner arcs, hatched
-         triangle, rotated squares, vertical timeline,
-         hero halo with orbiting accent — lives here.
-         Fixed to the viewport, scales via preserveAspectRatio.
-         ══════════════════════════════════════ -->
-    <svg class="page-bg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-        <defs>
-            <pattern id="hatch-bg" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-                <line x1="0" y1="0" x2="0" y2="6" stroke="#4A3E32" stroke-width="0.6" opacity="0.55"/>
-            </pattern>
-        </defs>
-
-        <!-- top-left corner arcs (cosmic anchor) — solid lines in three
-             muted hues. Each ring drifts at a different rate on scroll
-             (parallax), so they pull apart with apparent depth. -->
-        <g class="fx-arcs" stroke-width="1" fill="none" opacity="0.45">
-            <circle class="arc-outer" cx="-180" cy="-120" r="520" stroke="#B05030"/>
-            <circle class="arc-mid"   cx="-180" cy="-120" r="380" stroke="#4A7C7E"/>
-            <circle class="arc-inner" cx="-180" cy="-120" r="240" stroke="#4A3E32"/>
-        </g>
-
-        <!-- hatched triangle + 3 input rule lines (apex at y=430, mid y=510). -->
-        <g class="fx-triangle" stroke="#4A3E32" stroke-width="1" opacity="0.32">
-            <polygon points="200,430 290,590 110,590" fill="url(#hatch-bg)"/>
-            <line x1="60" y1="500" x2="140" y2="500"/>
-            <line x1="60" y1="510" x2="125" y2="510"/>
-            <line x1="60" y1="520" x2="115" y2="520"/>
-        </g>
-
-        <!-- PRISM SPECTRUM — 5 rays fanning UP-right from exit (245,510)
-             at angles −32° to −4°. Reveals via stroke-dashoffset on scroll. -->
-        <g class="fx-prism" stroke="#4A3E32" stroke-width="1" stroke-linecap="round" fill="none">
-            <line x1="245" y1="510" x2="414.6" y2="404.0"/>
-            <line x1="245" y1="510" x2="426.3" y2="425.5"/>
-            <line x1="245" y1="510" x2="435.2" y2="448.2"/>
-            <line x1="245" y1="510" x2="441.3" y2="471.8"/>
-            <line x1="245" y1="510" x2="444.5" y2="496.0"/>
-        </g>
-
-        <!-- stack of rotated squares (lower left) — the rotated one rotates
-             back to align with the axis-aligned one as you scroll -->
-        <g transform="translate(170 850)" stroke="#4A3E32" stroke-width="1" opacity="0.30">
-            <rect x="-50" y="-50" width="100" height="100" fill="url(#hatch-bg)"/>
-            <g class="fx-stack-align">
-                <rect x="-50" y="-50" width="100" height="100" fill="url(#hatch-bg)"/>
-            </g>
-            <line x1="-8" y1="0" x2="8" y2="0"/>
-            <line x1="0" y1="-8" x2="0" y2="8"/>
-        </g>
-
-        <!-- vertical morphing wave (right gutter) — JS recomputes d each frame -->
-        <path class="wave-r" stroke="#4A3E32" stroke-width="1" fill="none" opacity="0.30"
-              d="M 1480 60 L 1480 940"/>
-
+    <svg class="defs" aria-hidden="true">
+        <filter id="wobble" x="-25%" y="-25%" width="150%" height="150%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.012" numOctaves="3" seed="9" result="noise"/>
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="3"/>
+        </filter>
     </svg>
+
+    <!-- marginalia: ink marks pinned down the length of the page -->
+    <div class="doodles" aria-hidden="true">
+        <svg class="g1" viewBox="0 0 60 60"><path d="M30 30c0-5 6-5 6 1s-8 8-12 2 4-16 14-11 10 20 0 26-26 2-30-11"/></svg>
+        <svg class="g2 teal" viewBox="0 0 90 52"><path d="M20 38c-9 0-13-6-11-12s9-8 12-6c1-9 9-14 17-11s10 8 10 12c7-3 15 1 15 8s-6 9-11 9z"/><path d="M28 46h34"/></svg>
+        <svg class="g3" viewBox="0 0 40 40"><path d="M20 4c1 10 5 15 16 16-11 1-15 6-16 16-1-10-5-15-16-16 11-1 15-6 16-16z"/></svg>
+        <svg class="g4 teal" viewBox="0 0 70 70"><path d="M35 8v16M35 46v16M8 35h16M46 35h16M16 16l11 11M43 43l11 11M54 16L43 27M27 43 16 54"/></svg>
+        <svg class="g5" viewBox="0 0 80 40"><path d="M4 30c10-16 22-24 34-24s24 8 34 24"/><path d="M60 6l12 2-3 12"/></svg>
+        <svg class="g6" viewBox="0 0 40 40"><path d="M6 19 20 7l14 12"/><path d="M10 17v16h20V17"/><path d="M17 33v-9h6v9"/></svg>
+    </div>
 
     <div class="page">
 
         <!-- ── Hero ── -->
         <div class="hero">
             <div class="hero-text">
-                <h1 class="name">Nima<br><em>Sadri</em></h1>
-                <p class="role">Co-Founder &amp; Chief of Agents &middot; <a href="https://agents2agents.ai/" target="_blank" rel="noopener" style="color: inherit; text-decoration: none; border-bottom: 1px solid var(--text-light); transition: border-color 0.3s;">Agents2Agents</a></p>
+                <h1 class="name">Nima<br><span class="mark">Sadri</span></h1>
+                <p class="role">Co-Founder &amp; Chief of Agents &middot; <a href="https://agents2agents.ai/" target="_blank" rel="noopener">Agents2Agents</a></p>
             </div>
             <img src="nima-headshot.jpg" alt="Nima Sadri" class="headshot">
         </div>
@@ -685,7 +653,7 @@
 
             <a href="random/" class="writings-link">
                 Random Writings
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                <svg viewBox="0 0 34 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5c9-1.5 19-1.5 29-0.5"/><path d="M24 3l7 5.2-6.5 5"/></svg>
             </a>
 
             <p class="aside">
@@ -702,14 +670,14 @@
 
             <div class="exp-entry">
                 <div class="exp-header">
-                    <span class="exp-company"><a href="https://agents2agents.ai/" target="_blank" rel="noopener" style="color: inherit; text-decoration: none;">Agents2Agents</a></span>
+                    <span class="exp-company"><a href="https://agents2agents.ai/" target="_blank" rel="noopener">Agents2Agents</a></span>
                     <span class="exp-period">Jun 2025 &ndash; Present</span>
                 </div>
                 <p class="exp-role">Co-Founder &amp; Chief of Agents</p>
                 <ul class="exp-bullets">
                     <li>Foundation vision-language-action and world models for the physical world &mdash; AI that survives real-world deployment</li>
                     <li>A closed loop of specialized agents that build, deploy, and improve ML systems autonomously</li>
-                    <li>First product: <a href="https://agents2agents.ai/ata" target="_blank" rel="noopener" style="color: var(--accent-warm); text-decoration-color: rgba(176,80,48,0.3);">ata</a> &mdash; open-source AI agents for researchers and engineers, from reading papers to shipping production code</li>
+                    <li>First product: <a href="https://agents2agents.ai/ata" target="_blank" rel="noopener">ata</a> &mdash; open-source AI agents for researchers and engineers, from reading papers to shipping production code</li>
                 </ul>
             </div>
 
@@ -911,61 +879,5 @@
         </footer>
 
     </div>
-
-    <script>
-    // Scroll-driven background motion.
-    // rAF loop lerp-smooths raw scrollY into --scroll (CSS-driven motion)
-    // and re-samples two sine waves into <path d> each frame (JS-driven
-    // motion). The lerp lag is what makes the motion feel fluid.
-    (() => {
-        if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-        const root = document.documentElement;
-        const waveR = document.querySelector('.wave-r');
-        const TWO_PI = Math.PI * 2;
-        const N = 80;
-
-        let target = 0, smoothed = 0, t0 = performance.now();
-
-        const updateTarget = () => {
-            const max = root.scrollHeight - window.innerHeight;
-            target = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
-        };
-
-        // Vertical sine wave running top-to-bottom along the right gutter.
-        // x oscillates around baseX as a function of y. Independent time
-        // phase means the wave shifts even when scroll is idle.
-        const buildVWave = (baseX, yStart, yEnd, amp, wavelen, phase) => {
-            const x0 = baseX + amp * Math.sin((yStart / wavelen) * TWO_PI + phase);
-            let d = `M ${x0.toFixed(2)} ${yStart}`;
-            const span = yEnd - yStart;
-            for (let i = 1; i <= N; i++) {
-                const y = yStart + (i / N) * span;
-                const x = baseX + amp * Math.sin((y / wavelen) * TWO_PI + phase);
-                d += ` L ${x.toFixed(2)} ${y.toFixed(1)}`;
-            }
-            return d;
-        };
-
-        const tick = (now) => {
-            smoothed += (target - smoothed) * 0.09;
-            if (Math.abs(target - smoothed) < 0.0005) smoothed = target;
-            root.style.setProperty('--scroll', smoothed.toFixed(4));
-
-            const elapsed = (now - t0) / 1000;
-            if (waveR) {
-                const amp = 7 + smoothed * 14;
-                const phase = elapsed * 0.22 + smoothed * Math.PI * 2;
-                waveR.setAttribute('d', buildVWave(1480, 60, 940, amp, 220, phase));
-            }
-
-            requestAnimationFrame(tick);
-        };
-
-        window.addEventListener('scroll', updateTarget, { passive: true });
-        window.addEventListener('resize', updateTarget, { passive: true });
-        updateTarget();
-        requestAnimationFrame(tick);
-    })();
-    </script>
 </body>
 </html>
