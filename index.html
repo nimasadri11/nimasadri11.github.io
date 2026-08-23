@@ -85,24 +85,42 @@
 
         .doodles .teal { stroke: var(--teal-600); }
 
-        .g1  { top: 2%;   left: 3.5%;  width: 72px; }
-        .g2  { top: 6%;   right: 3%;    width: 84px; }
-        .g3  { top: 11%;  left: 2.5%;   width: 46px; }
-        .g4  { top: 16%;  right: 4%;    width: 58px; }
-        .g5  { top: 22%;  left: 3.5%;   width: 62px; }
-        .g6  { top: 28%;  right: 2.5%;  width: 50px; }
-        .g7  { top: 34%;  left: 3%;     width: 66px; }
-        .g8  { top: 40%;  right: 3.5%;  width: 54px; }
-        .g9  { top: 46%;  left: 2.5%;   width: 58px; }
-        .g10 { top: 52%;  right: 3%;    width: 70px; }
-        .g11 { top: 58%;  left: 3.5%;   width: 44px; }
-        .g12 { top: 64%;  right: 2.5%;  width: 62px; }
-        .g13 { top: 70%;  left: 3%;     width: 56px; }
-        .g14 { top: 76%;  right: 3.5%;  width: 48px; }
-        .g15 { top: 82%;  left: 2.5%;   width: 68px; }
-        .g16 { top: 88%;  right: 3%;    width: 52px; }
-        .g17 { top: 93%;  left: 3.5%;   width: 60px; }
-        .g18 { top: 97%;  right: 4%;    width: 44px; }
+/* Each mark sits beside the thing it refers to: the dancer and horseshoe
+           next to the interests line, a chip and a net beside Apple, a cap at
+           Education. Percentages are of full page height, measured against the
+           section offsets. */
+        .g1  { top: 2%;    left: 3.5%;  width: 46px; }
+        .g2  { top: 5%;    right: 3%;   width: 52px; }
+        .g3  { top: 11.5%; left: 3%;    width: 48px; }
+        .g4  { top: 12.6%; right: 3%;   width: 50px; }
+        .g5  { top: 13.8%; left: 2.5%;  width: 46px; }
+        .g6  { top: 14.6%; right: 3.5%; width: 40px; }
+        .g7  { top: 15.6%; left: 3.5%;  width: 62px; }
+        .g8  { top: 16.6%; right: 2.5%; width: 56px; }
+        .g9  { top: 17.8%; left: 3%;    width: 50px; }
+        .g10 { top: 20%;   right: 3%;   width: 72px; }
+        .g11 { top: 23%;   left: 2.5%;  width: 54px; }
+        .g12 { top: 25.5%; right: 2.5%; width: 66px; }
+        .g13 { top: 28%;   left: 3.5%;  width: 48px; }
+        .g14 { top: 31.5%; right: 3%;   width: 60px; }
+        .g15 { top: 34%;   left: 3%;    width: 52px; }
+        .g16 { top: 37.5%; right: 3.5%; width: 46px; }
+        .g17 { top: 40.5%; left: 2.5%;  width: 52px; }
+        .g18 { top: 43%;   right: 3%;   width: 40px; }
+        .g19 { top: 46%;   left: 3.5%;  width: 44px; }
+        .g20 { top: 48%;   right: 2.5%; width: 58px; }
+        .g21 { top: 53%;   left: 3%;    width: 56px; }
+        .g22 { top: 56.5%; right: 3%;   width: 62px; }
+        .g23 { top: 58.5%; left: 2.5%;  width: 50px; }
+        .g24 { top: 62%;   right: 3.5%; width: 48px; }
+        .g25 { top: 66%;   left: 3%;    width: 54px; }
+        .g26 { top: 70%;   right: 3%;   width: 52px; }
+        .g27 { top: 74%;   left: 3.5%;  width: 44px; }
+        .g28 { top: 78%;   right: 2.5%; width: 60px; }
+        .g29 { top: 83%;   left: 3%;    width: 46px; }
+        .g30 { top: 87%;   right: 3%;   width: 56px; }
+        .g31 { top: 92%;   left: 2.5%;  width: 42px; }
+        .g32 { top: 95.5%; right: 3.5%; width: 44px; }
 
         /* nothing lines up: every other mark leans the other way */
         .doodles svg:nth-child(3n)   { rotate: -8deg; }
@@ -629,26 +647,64 @@
         </filter>
     </svg>
 
-    <!-- marginalia: ink marks pinned down the length of the page -->
+    <!-- marginalia: ink marks pinned beside the content they refer to -->
     <div class="doodles" aria-hidden="true">
-        <svg class="g1" viewBox="0 0 60 60"><path d="M30 30c0-5 6-5 6 1s-8 8-12 2 4-16 14-11 10 20 0 26-26 2-30-11"/></svg>
-        <svg class="g2 teal" viewBox="0 0 90 52"><path d="M20 38c-9 0-13-6-11-12s9-8 12-6c1-9 9-14 17-11s10 8 10 12c7-3 15 1 15 8s-6 9-11 9z"/><path d="M28 46h34"/></svg>
-        <svg class="g3 teal" viewBox="0 0 40 44"><circle cx="25" cy="8" r="4"/><path d="M25 12l-3 12"/><path d="M24 15l-3-8M24 15l9 5"/><path d="M22 24l-9 7M22 24l7 8"/></svg>
-        <svg class="g4" viewBox="0 0 40 40"><path d="M20 34C9 26 5 19 5 13c0-5 3.5-8 7.5-8 3 0 6 2 7.5 4.5C21.5 7 24.5 5 27.5 5c4 0 7.5 3 7.5 8 0 6-4 13-15 21z"/></svg>
-        <svg class="g5 teal" viewBox="0 0 40 44"><path d="M20 4a11 11 0 0 0-6.5 19.8c1.2 1 2.1 2.6 2.3 4.2h8.4c.2-1.6 1.1-3.2 2.3-4.2A11 11 0 0 0 20 4z"/><path d="M16 33h8M17.5 37.5h5"/></svg>
-        <svg class="g6" viewBox="0 0 40 40"><path d="M22 3 9 23h8l-3 14 13-19h-8z"/></svg>
-        <svg class="g7" viewBox="0 0 60 30"><path d="M3 15c4.5-9 9-9 13.5 0s9 9 13.5 0 9-9 13.5 0 9 9 13.5 0"/></svg>
-        <svg class="g8 teal" viewBox="0 0 40 40"><circle cx="20" cy="20" r="15"/><path d="M13 20.5l5 5 10-11"/></svg>
-        <svg class="g9" viewBox="0 0 44 44"><path d="M10 14h20v13a8.5 8.5 0 0 1-8.5 8.5h-3A8.5 8.5 0 0 1 10 27z"/><path d="M30 17.5h4a4.5 4.5 0 0 1 0 9h-4"/><path d="M16 8c0 2.5-2.5 2.5-2.5 5M24 7c0 2.5-2.5 2.5-2.5 5"/></svg>
-        <svg class="g10" viewBox="0 0 60 44"><path d="M3 22 55 5 42 40l-9-13z"/><path d="M3 22l30 5"/></svg>
-        <svg class="g11 teal" viewBox="0 0 40 40"><path d="M20 5v30M8 11l24 18M32 11 8 29"/></svg>
-        <svg class="g12" viewBox="0 0 70 70"><path d="M35 8v16M35 46v16M8 35h16M46 35h16M16 16l11 11M43 43l11 11M54 16L43 27M27 43 16 54"/></svg>
-        <svg class="g13" viewBox="0 0 44 44"><circle cx="22" cy="22" r="6"/><ellipse cx="22" cy="22" rx="19" ry="8"/><ellipse cx="22" cy="22" rx="19" ry="8" transform="rotate(60 22 22)"/><ellipse cx="22" cy="22" rx="19" ry="8" transform="rotate(120 22 22)"/></svg>
-        <svg class="g14" viewBox="0 0 40 40"><path d="M20 4c1 10 5 15 16 16-11 1-15 6-16 16-1-10-5-15-16-16 11-1 15-6 16-16z"/></svg>
-        <svg class="g15 teal" viewBox="0 0 60 44"><path d="M4 36c8-3 12-10 13-18 .5-4 4-6 6-4 2 1.5 1 5-2 7"/><path d="M21 21c8-2 14-8 16-14"/><path d="M31 5l7 1-1 7"/></svg>
-        <svg class="g16" viewBox="0 0 40 40"><path d="M6 19 20 7l14 12"/><path d="M10 17v16h20V17"/><path d="M17 33v-9h6v9"/></svg>
-        <svg class="g17" viewBox="0 0 60 60"><path d="M30 6c14 0 24 10 24 24S44 54 30 54 6 44 6 30 16 6 30 6z"/><path d="M21 25v3M39 25v3M20 37c4 6 16 6 20 0"/></svg>
-        <svg class="g18 teal" viewBox="0 0 40 44"><path d="M20 4v26"/><path d="M12 22l8 9 8-9"/><path d="M8 39h24"/></svg>
+        <!-- hero -->
+        <svg class="g1" viewBox="0 0 40 40"><path d="M20 4c1 10 5 15 16 16-11 1-15 6-16 16-1-10-5-15-16-16 11-1 15-6 16-16z"/></svg>
+        <!-- intro: foundation models trained on physics -->
+        <svg class="g2 teal" viewBox="0 0 44 44"><circle cx="22" cy="22" r="5"/><ellipse cx="22" cy="22" rx="19" ry="8"/><ellipse cx="22" cy="22" rx="19" ry="8" transform="rotate(60 22 22)"/><ellipse cx="22" cy="22" rx="19" ry="8" transform="rotate(120 22 22)"/></svg>
+        <!-- writing -->
+        <svg class="g3" viewBox="0 0 40 40"><path d="M8 32l3-8 18-18 5 5-18 18z"/><path d="M26 10l5 5"/><path d="M8 32l5-2"/></svg>
+        <!-- interests: hip-hop -->
+        <svg class="g4 teal" viewBox="0 0 40 44"><circle cx="25" cy="8" r="4"/><path d="M25 12l-3 12"/><path d="M24 15l-3-8M24 15l9 5"/><path d="M22 24l-9 7M22 24l7 8"/></svg>
+        <!-- interests: horseback riding -->
+        <svg class="g5" viewBox="0 0 40 44"><path d="M12 38c-2-6-4-10-4-15C8 15 13 9 20 9s12 6 12 14c0 5-2 9-4 15"/><path d="M11 27v1.5M29 27v1.5M12.5 33v1.5M27.5 33v1.5"/></svg>
+        <!-- formerly: indie rock -->
+        <svg class="g6 teal" viewBox="0 0 34 44"><path d="M14 33V9l16-5v24"/><circle cx="9" cy="34" r="5"/><circle cx="25" cy="29" r="5"/></svg>
+        <!-- formerly: skateboarding -->
+        <svg class="g7" viewBox="0 0 60 30"><path d="M5 12c2-4 6-5 9-3 8 3 24 3 32 0 3-2 7-1 9 3"/><circle cx="18" cy="21" r="3"/><circle cx="42" cy="21" r="3"/><path d="M18 15v3M42 15v3"/></svg>
+        <!-- formerly: Muay Thai -->
+        <svg class="g8" viewBox="0 0 48 44"><path d="M24 4v6"/><path d="M24 10c-5 0-8 2.5-8 6M24 10c5 0 8 2.5 8 6"/><rect x="8" y="16" width="15" height="17" rx="6.5"/><rect x="25" y="16" width="15" height="17" rx="6.5"/><path d="M8.5 27h14M25.5 27h14"/></svg>
+        <!-- Agents2Agents -->
+        <svg class="g9 teal" viewBox="0 0 40 40"><rect x="7" y="14" width="26" height="19" rx="5"/><path d="M20 14V8"/><circle cx="20" cy="5.5" r="2.5"/><path d="M15 22v3M25 22v3M15 29h10"/></svg>
+        <!-- Apple: whimsy break -->
+        <svg class="g10" viewBox="0 0 90 52"><path d="M20 38c-9 0-13-6-11-12s9-8 12-6c1-9 9-14 17-11s10 8 10 12c7-3 15 1 15 8s-6 9-11 9z"/><path d="M28 46h34"/></svg>
+        <!-- Apple: CUDA kernels -->
+        <svg class="g11 teal" viewBox="0 0 44 44"><rect x="12" y="12" width="20" height="20" rx="3"/><rect x="18" y="18" width="8" height="8" rx="1"/><path d="M12 18H6M12 26H6M32 18h6M32 26h6M18 12V6M26 12V6M18 32v6M26 32v6"/></svg>
+        <!-- Apple: the models themselves -->
+        <svg class="g12" viewBox="0 0 60 44"><circle cx="8" cy="12" r="3"/><circle cx="8" cy="32" r="3"/><circle cx="30" cy="16" r="3"/><circle cx="30" cy="30" r="3"/><circle cx="52" cy="22" r="3"/><path d="M11 12l16 4M11 12l16 18M11 32l16-16M11 32l16-2M33 16l16 6M33 30l16-8"/></svg>
+        <!-- Apple: 3D, point clouds -->
+        <svg class="g13" viewBox="0 0 40 40"><path d="M8 14l12-7 12 7v14l-12 7-12-7z"/><path d="M8 14l12 7 12-7M20 21v14"/></svg>
+        <!-- Avybe: one-on-one video calls -->
+        <svg class="g14 teal" viewBox="0 0 56 36"><rect x="4" y="8" width="30" height="21" rx="5"/><path d="M34 16l16-7v18l-16-7z"/></svg>
+        <!-- Waterloo: NLP research -->
+        <svg class="g15" viewBox="0 0 44 40"><path d="M22 12c-4-4-10-5-16-4v22c6-1 12 0 16 4"/><path d="M22 12c4-4 10-5 16-4v22c-6-1-12 0-16 4"/><path d="M22 12v22"/></svg>
+        <!-- Levyx: SSD storage -->
+        <svg class="g16" viewBox="0 0 40 44"><ellipse cx="20" cy="11" rx="14" ry="5"/><path d="M6 11v21c0 3 6 5 14 5s14-2 14-5V11"/><path d="M6 21c0 3 6 5 14 5s14-2 14-5"/></svg>
+        <!-- Blockthrough: TBs a day -->
+        <svg class="g17 teal" viewBox="0 0 44 40"><path d="M6 34h32"/><path d="M12 34V23M20 34V12M28 34V27"/></svg>
+        <!-- speed -->
+        <svg class="g18" viewBox="0 0 40 40"><path d="M22 3 9 23h8l-3 14 13-19h-8z"/></svg>
+        <!-- publications -->
+        <svg class="g19 teal" viewBox="0 0 36 44"><path d="M6 6h16l8 8v24H6z"/><path d="M22 6v8h8"/><path d="M12 22h12M12 28h12M12 34h8"/></svg>
+        <!-- publications: sent out into the world -->
+        <svg class="g20" viewBox="0 0 60 44"><path d="M3 22 55 5 42 40l-9-13z"/><path d="M3 22l30 5"/></svg>
+        <!-- education -->
+        <svg class="g21 teal" viewBox="0 0 48 36"><path d="M4 14 24 6l20 8-20 8z"/><path d="M12 18v8c0 3 24 3 24 0v-8"/><path d="M44 14v11"/></svg>
+        <!-- stack -->
+        <svg class="g22" viewBox="0 0 56 40"><rect x="4" y="6" width="48" height="28" rx="5"/><path d="M4 14h48"/><path d="M13 21l5 4-5 4"/><path d="M24 29h11"/></svg>
+        <!-- stack: the toolbox -->
+        <svg class="g23" viewBox="0 0 44 44"><circle cx="22" cy="22" r="8"/><path d="M22 6v6M22 32v6M6 22h6M32 22h6M11 11l4.5 4.5M28.5 28.5 33 33M33 11l-4.5 4.5M15.5 28.5 11 33"/></svg>
+        <!-- references -->
+        <svg class="g24 teal" viewBox="0 0 48 40"><path d="M8 7h32a5 5 0 0 1 5 5v14a5 5 0 0 1-5 5H21l-9 7v-7H8a5 5 0 0 1-5-5V12a5 5 0 0 1 5-5z"/><path d="M13 15h22M13 22h14"/></svg>
+        <svg class="g25" viewBox="0 0 40 40"><path d="M20 34C9 26 5 19 5 13c0-5 3.5-8 7.5-8 3 0 6 2 7.5 4.5C21.5 7 24.5 5 27.5 5c4 0 7.5 3 7.5 8 0 6-4 13-15 21z"/></svg>
+        <svg class="g26 teal" viewBox="0 0 40 40"><circle cx="20" cy="20" r="15"/><path d="M13 20.5l5 5 10-11"/></svg>
+        <svg class="g27" viewBox="0 0 40 40"><path d="M20 4c1 10 5 15 16 16-11 1-15 6-16 16-1-10-5-15-16-16 11-1 15-6 16-16z"/></svg>
+        <svg class="g28" viewBox="0 0 60 30"><path d="M3 15c4.5-9 9-9 13.5 0s9 9 13.5 0 9-9 13.5 0 9 9 13.5 0"/></svg>
+        <svg class="g29 teal" viewBox="0 0 40 44"><path d="M20 4a11 11 0 0 0-6.5 19.8c1.2 1 2.1 2.6 2.3 4.2h8.4c.2-1.6 1.1-3.2 2.3-4.2A11 11 0 0 0 20 4z"/><path d="M16 33h8M17.5 37.5h5"/></svg>
+        <svg class="g30" viewBox="0 0 60 60"><path d="M30 6c14 0 24 10 24 24S44 54 30 54 6 44 6 30 16 6 30 6z"/><path d="M21 25v3M39 25v3M20 37c4 6 16 6 20 0"/></svg>
+        <svg class="g31" viewBox="0 0 60 60"><path d="M30 30c0-5 6-5 6 1s-8 8-12 2 4-16 14-11 10 20 0 26-26 2-30-11"/></svg>
+        <svg class="g32 teal" viewBox="0 0 40 44"><path d="M20 4v26"/><path d="M12 22l8 9 8-9"/><path d="M8 39h24"/></svg>
     </div>
 
     <div class="page">
